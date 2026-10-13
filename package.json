@@ -1,0 +1,49 @@
+{
+  "name": "tap-order",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Multi-tenant NFC & QR Table Ordering with Real-time Cashier KDS for Indonesian F&B",
+  "scripts": {
+    "dev": "next dev -p 3000",
+    "build": "prisma generate && next build",
+    "start": "next start",
+    "db:push": "prisma db push",
+    "db:seed": "tsx scripts/seed.ts",
+    "db:studio": "prisma studio",
+    "db:backup": "tsx scripts/backup-db.ts",
+    "health": "tsx scripts/health-check.ts",
+    "postinstall": "prisma generate",
+    "test": "tsx scripts/run-unit-tests.ts && tsx scripts/simulate-real-users.ts",
+    "test:unit": "tsx scripts/run-unit-tests.ts",
+    "test:security": "tsx scripts/test-security.ts",
+    "test:simulation": "tsx scripts/simulate-real-users.ts",
+    "nfc:batch": "tsx scripts/nfc-batch-generator.ts"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.4.0",
+    "clsx": "^2.1.1",
+    "lucide-react": "^0.475.0",
+    "next": "^15.1.7",
+    "prisma": "^6.4.0",
+    "qrcode": "^1.5.4",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "tailwind-merge": "^3.0.0",
+    "tsx": "^4.19.0",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.0",
+    "@types/qrcode": "^1.5.5",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "autoprefixer": "^10.4.20",
+    "postcss": "^8.4.49",
+    "tailwindcss": "^3.4.17",
+    "typescript": "^5.7.3"
+  },
+  "packageManager": "pnpm@11.24.0",
+  "engines": {
+    "node": ">=20"
+  }
+}
