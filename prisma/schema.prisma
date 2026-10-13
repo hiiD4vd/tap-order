@@ -1,0 +1,197 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Venue {
+  id               String       @id @default(cuid())
+  slug             String       @unique
+  name             String
+  phone            String?
+  whatsapp         String?
+  address          String?
+  logoUrl          String?
+  currency         String       @default("IDR")
+  subscriptionTier String       @default("trial") // trial, basic, pro
+  expiresAt        DateTime?
+  pinCashier       String       @default("")
+  ownerEmail       String?
+  password         String?
+  taxRate          Int          @default(0) // PB1 percentage e.g. 10
+  serviceRate      Int          @default(0) // Service charge percentage e.g. 5
+  qrisImageUrl     String?      // QRIS image or string
+  isOpen           Boolean      @default(true) // Store open status
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+
+  tables           Table[]
+  categories       Category[]
+  menuItems        MenuItem[]
+  orders           Order[]
+  requests         TableRequest[]
+  auditLogs        AuditLog[]
+
+  @@map("venues")
+}
+
+model Table {
+  id          String         @id @default(cuid())
+  venueId     String
+  number      String         // e.g. "01", "02", "VIP 1"
+  label       String?        // e.g. "Lantai 1", "Outdoor"
+  cardToken   String         @unique // 8-char unique token for NFC/QR: e.g. "A7X92K"
+  status      String         @default("empty") // "empty", "active", "bill_requested"
+  isActive    Boolean        @default(true)
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  venue       Venue          @relation(fields: [venueId], references: [id], onDelete: Cascade)
+  orders      Order[]
+  requests    TableRequest[]
+
+  @@unique([venueId, number])
+  @@index([cardToken])
+  @@map("tables")
+}
+
+model Category {
+  id        String     @id @default(cuid())
+  venueId   String
+  name      String
+  icon      String?
+  sort      Int        @default(0)
+  isActive  Boolean    @default(true)
+  createdAt DateTime   @default(now())
+
+  venue     Venue      @relation(fields: [venueId], references: [id], onDelete: Cascade)
+  menuItems MenuItem[]
+
+  @@map("categories")
+}
+
+model MenuItem {
+  id           String        @id @default(cuid())
+  venueId      String
+  categoryId   String
+  name         String
+  description  String?
+  price        Int           // Rupiah amount e.g. 25000
+  imageUrl     String?
+  isAvailable  Boolean       @default(true) // Toggle 1-klik kasir
+  isPopular    Boolean       @default(false)
+  sort         Int           @default(0)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  venue        Venue         @relation(fields: [venueId], references: [id], onDelete: Cascade)
+  category     Category      @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  optionGroups OptionGroup[]
+  orderItems   OrderItem[]
+
+  @@index([venueId, categoryId])
+  @@map("menu_items")
+}
+
+model OptionGroup {
+  id         String         @id @default(cuid())
+  menuItemId String
+  name       String         // e.g. "Pilihan Suhu", "Level Pedas", "Topping"
+  type       String         @default("single") // "single" | "multiple"
+  required   Boolean        @default(false)
+  sort       Int            @default(0)
+
+  menuItem   MenuItem       @relation(fields: [menuItemId], references: [id], onDelete: Cascade)
+  choices    OptionChoice[]
+
+  @@map("option_groups")
+}
+
+model OptionChoice {
+  id         String      @id @default(cuid())
+  groupId    String
+  name       String      // e.g. "Dingin / Ice", "Level 3", "Extra Keju"
+  priceDelta Int         @default(0) // Tambahan harga e.g. 3000
+  sort       Int         @default(0)
+
+  group      OptionGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  @@map("option_choices")
+}
+
+model Order {
+  id            String        @id @default(cuid())
+  venueId       String
+  tableId       String?
+  orderNumber   String        // e.g. "#101"
+  customerName    String?
+  status          String        @default("pending") // "pending", "preparing", "served", "completed", "cancelled"
+  subtotal        Int           @default(0)
+  taxAmount       Int           @default(0)
+  serviceAmount   Int           @default(0)
+  totalAmount     Int
+  paymentMethod   String        @default("cashier") // "cashier", "cash", "qris", "debit"
+  isPaid          Boolean       @default(false)
+  paidAt          DateTime?
+  customerNote    String?
+  cancelledReason String?
+  createdAt       DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  venue         Venue         @relation(fields: [venueId], references: [id], onDelete: Cascade)
+  table         Table?        @relation(fields: [tableId], references: [id], onDelete: SetNull)
+  items         OrderItem[]
+
+  @@index([venueId, status])
+  @@index([tableId])
+  @@map("orders")
+}
+
+model OrderItem {
+  id              String    @id @default(cuid())
+  orderId         String
+  menuItemId      String?
+  nameSnapshot    String
+  priceSnapshot   Int
+  quantity        Int       @default(1)
+  notes           String?
+  selectedOptions String?   // JSON snapshot: e.g. [{"group": "Suhu", "choice": "Ice", "priceDelta": 2000}]
+
+  order           Order     @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  menuItem        MenuItem? @relation(fields: [menuItemId], references: [id], onDelete: SetNull)
+
+  @@map("order_items")
+}
+
+model TableRequest {
+  id         String    @id @default(cuid())
+  venueId    String
+  tableId    String
+  type       String    // "waiter" (panggil pelayan), "bill" (minta nota)
+  status     String    @default("open") // "open", "resolved"
+  createdAt  DateTime  @default(now())
+  resolvedAt DateTime?
+  openKey    String?  @unique
+
+  venue      Venue     @relation(fields: [venueId], references: [id], onDelete: Cascade)
+  table      Table     @relation(fields: [tableId], references: [id], onDelete: Cascade)
+
+  @@index([venueId, status])
+  @@map("table_requests")
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  venueId   String
+  action    String   // "CANCEL_ORDER", "VOID_ITEM", "MARK_PAID", "PRICE_CHANGE"
+  details   String   // JSON string
+  createdAt DateTime @default(now())
+
+  venue     Venue    @relation(fields: [venueId], references: [id], onDelete: Cascade)
+
+  @@index([venueId, createdAt])
+  @@map("audit_logs")
+}
