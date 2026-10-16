@@ -1,0 +1,91 @@
+{
+  "outlet": {
+    "name": "Kopi Senja & Eatery",
+    "slug": "kopi-senja",
+    "generatedAt": "2026-09-29T10:41:45.597Z",
+    "totalCards": 10,
+    "protocol": "NDEF_URI"
+  },
+  "cards": [
+    {
+      "tableNumber": "01",
+      "label": "Indoor AC",
+      "cardToken": "SNJ001",
+      "ndefPayloadUri": "https://taporder.id/c/SNJ001",
+      "suggestedChip": "NTAG213 (144 bytes) atau NTAG215 (504 bytes)",
+      "readOnlyLockRecommended": true
+    },
+    {
+      "tableNumber": "02",
+      "label": "Indoor AC",
+      "cardToken": "SNJ002",
+      "ndefPayloadUri": "https://taporder.id/c/SNJ002",
+      "suggestedChip": "NTAG213 (144 bytes) atau NTAG215 (504 bytes)",
+      "readOnlyLockRecommended": true
+    },
+    {
+      "tableNumber": "03",
+      "label": "Indoor AC",
+      "cardToken": "SNJ003",
+      "ndefPayloadUri": "https://taporder.id/c/SNJ003",
+      "suggestedChip": "NTAG213 (144 bytes) atau NTAG215 (504 bytes)",
+      "readOnlyLockRecommended": true
+    },
+    {
+      "tableNumber": "04",
+      "label": "Indoor AC",
+      "cardToken": "SNJ004",
+      "ndefPayloadUri": "https://taporder.id/c/SNJ004",
+      "suggestedChip": "NTAG213 (144 bytes) atau NTAG215 (504 bytes)",
+      "readOnlyLockRecommended": true
+    },
+    {
+      "tableNumber": "05",
+      "label": "Outdoor Semi-Open",
+      "cardToken": "SNJ005",
+      "ndefPayloadUri": "https://taporder.id/c/SNJ005",
+      "suggestedChip": "NTAG213 (144 bytes) atau NTAG215 (504 bytes)",
+      "readOnlyLockRecommended": true
+    },
+    {
+      "tableNumber": "06",
+      "label": "Outdoor Semi-Open",
+      "cardToken": "SNJ006",
+      "ndefPayloadUri": "https://taporder.id/c/SNJ006",
+      "suggestedChip": "NTAG213 (144 bytes) atau NTAG215 (504 bytes)",
+      "readOnlyLockRecommended": true
+    },
+    {
+      "tableNumber": "07",
+      "label": "Outdoor Smoking",
+      "cardToken": "SNJ007",
+      "ndefPayloadUri": "https://taporder.id/c/SNJ007",
+      "suggestedChip": "NTAG213 (144 bytes) atau NTAG215 (504 bytes)",
+      "readOnlyLockRecommended": true
+    },
+    {
+      "tableNumber": "08",
+      "label": "Outdoor Smoking",
+      "cardToken": "SNJ008",
+      "ndefPayloadUri": "https://taporder.id/c/SNJ008",
+      "suggestedChip": "NTAG213 (144 bytes) atau NTAG215 (504 bytes)",
+      "readOnlyLockRecommended": true
+    },
+    {
+      "tableNumber": "VIP 1",
+      "label": "Lantai 2",
+      "cardToken": "SNJVIP1",
+      "ndefPayloadUri": "https://taporder.id/c/SNJVIP1",
+      "suggestedChip": "NTAG213 (144 bytes) atau NTAG215 (504 bytes)",
+      "readOnlyLockRecommended": true
+    },
+    {
+      "tableNumber": "VIP 2",
+      "label": "Lantai 2",
+      "cardToken": "SNJVIP2",
+      "ndefPayloadUri": "https://taporder.id/c/SNJVIP2",
+      "suggestedChip": "NTAG213 (144 bytes) atau NTAG215 (504 bytes)",
+      "readOnlyLockRecommended": true
+    }
+  ]
+}

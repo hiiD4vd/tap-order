@@ -1,0 +1,11 @@
+No Meja,Label Area,Token Kartu,NFC Chip Payload (NDEF URI),QR Code Data,Teks Visual Depan Kartu,Teks Visual Belakang Kartu,Chip Rekomendasi
+"01","Indoor AC","SNJ001","https://taporder.id/c/SNJ001","https://taporder.id/c/SNJ001","MEJA 01 - Indoor AC","TAP ATAU SCAN UNTUK PESAN & BAYAR | Kopi Senja & Eatery","NTAG213 / NTAG215"
+"02","Indoor AC","SNJ002","https://taporder.id/c/SNJ002","https://taporder.id/c/SNJ002","MEJA 02 - Indoor AC","TAP ATAU SCAN UNTUK PESAN & BAYAR | Kopi Senja & Eatery","NTAG213 / NTAG215"
+"03","Indoor AC","SNJ003","https://taporder.id/c/SNJ003","https://taporder.id/c/SNJ003","MEJA 03 - Indoor AC","TAP ATAU SCAN UNTUK PESAN & BAYAR | Kopi Senja & Eatery","NTAG213 / NTAG215"
+"04","Indoor AC","SNJ004","https://taporder.id/c/SNJ004","https://taporder.id/c/SNJ004","MEJA 04 - Indoor AC","TAP ATAU SCAN UNTUK PESAN & BAYAR | Kopi Senja & Eatery","NTAG213 / NTAG215"
+"05","Outdoor Semi-Open","SNJ005","https://taporder.id/c/SNJ005","https://taporder.id/c/SNJ005","MEJA 05 - Outdoor Semi-Open","TAP ATAU SCAN UNTUK PESAN & BAYAR | Kopi Senja & Eatery","NTAG213 / NTAG215"
+"06","Outdoor Semi-Open","SNJ006","https://taporder.id/c/SNJ006","https://taporder.id/c/SNJ006","MEJA 06 - Outdoor Semi-Open","TAP ATAU SCAN UNTUK PESAN & BAYAR | Kopi Senja & Eatery","NTAG213 / NTAG215"
+"07","Outdoor Smoking","SNJ007","https://taporder.id/c/SNJ007","https://taporder.id/c/SNJ007","MEJA 07 - Outdoor Smoking","TAP ATAU SCAN UNTUK PESAN & BAYAR | Kopi Senja & Eatery","NTAG213 / NTAG215"
+"08","Outdoor Smoking","SNJ008","https://taporder.id/c/SNJ008","https://taporder.id/c/SNJ008","MEJA 08 - Outdoor Smoking","TAP ATAU SCAN UNTUK PESAN & BAYAR | Kopi Senja & Eatery","NTAG213 / NTAG215"
+"VIP 1","Lantai 2","SNJVIP1","https://taporder.id/c/SNJVIP1","https://taporder.id/c/SNJVIP1","MEJA VIP 1 - Lantai 2","TAP ATAU SCAN UNTUK PESAN & BAYAR | Kopi Senja & Eatery","NTAG213 / NTAG215"
+"VIP 2","Lantai 2","SNJVIP2","https://taporder.id/c/SNJVIP2","https://taporder.id/c/SNJVIP2","MEJA VIP 2 - Lantai 2","TAP ATAU SCAN UNTUK PESAN & BAYAR | Kopi Senja & Eatery","NTAG213 / NTAG215"
