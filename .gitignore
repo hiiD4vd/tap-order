@@ -9,3 +9,4 @@ prisma/dev.db-journal
 backups/
 _references/
 .local-postgres/
+*.tsbuildinfo
