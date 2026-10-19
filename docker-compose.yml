@@ -1,0 +1,54 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: tap-order-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: taporder
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-taporder_dev_password}
+      POSTGRES_DB: taporder
+    ports:
+      - "5433:5432"
+    volumes:
+      - tap-order-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U taporder -d taporder"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  tap-order:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: tap-order-app
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=postgresql://taporder:${POSTGRES_PASSWORD:-taporder_dev_password}@postgres:5432/taporder?schema=public
+      - SESSION_SECRET=${SESSION_SECRET:?SESSION_SECRET is required}
+      - NEXT_PUBLIC_APP_URL=https://taporder.id
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./data:/app/data
+
+  caddy:
+    image: caddy:2-alpine
+    container_name: tap-order-caddy
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - ./caddy_data:/data
+      - ./caddy_config:/config
+    depends_on:
+      - tap-order
+
+volumes:
+  tap-order-postgres-data:

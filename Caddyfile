@@ -1,0 +1,4 @@
+# Ganti taporder.id dengan domain Anda
+taporder.id, www.taporder.id {
+    reverse_proxy tap-order:3000
+}
