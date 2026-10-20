@@ -115,21 +115,27 @@ export async function POST(request: Request) {
     const serviceAmount = Math.round((subtotal * (venue.serviceRate || 0)) / 100);
     const totalAmount = subtotal + taxAmount + serviceAmount;
 
-    // 4. Generate sequential order number for today
+    // 4. Save Order in Transaction
+    //
+    // Nomor order WAJIB dari sequence database, bukan `count()+101`. Count di
+    // luar transaksi: dua tamu tap bersamaan baca angka yang sama lalu dapat
+    // nomor kembar. Sequence atomik di level DB, jadi aman.
+    //
+    // Sequence per-outlet, di-reset tiap hari (dibanding tanggal createdAt).
     const startOfToday = new Date();
     startOfToday.setHours(0, 0, 0, 0);
 
-    const todayOrderCount = await db.order.count({
-      where: {
-        venueId,
-        createdAt: { gte: startOfToday },
-      },
-    });
-
-    const orderNumber = `#${todayOrderCount + 101}`;
-
-    // 5. Save Order in Transaction
     const newOrder = await db.$transaction(async (tx) => {
+      const [{ value: seq }] = await tx.$queryRaw<{ value: bigint }[]>`
+        INSERT INTO order_number_counters (id, "venueId", day, seq)
+        VALUES (gen_random_uuid()::text, ${venueId}, ${startOfToday}, 1)
+        ON CONFLICT ("venueId", day)
+          DO UPDATE SET seq = order_number_counters.seq + 1
+        RETURNING seq AS value
+      `;
+
+      const orderNumber = `#${Number(seq) + 100}`;
+
       const order = await tx.order.create({
         data: {
           venueId,
@@ -219,6 +225,16 @@ export async function GET(request: Request) {
       where.tableId = tableId;
     }
 
+    // Jendela waktu. Kasir & dapur polling tiap 5-6 detik; tanpa batas ini
+    // payload membengkak seiring bertambahnya riwayat order.
+    const from = searchParams.get('from');
+    const to = searchParams.get('to');
+    if (from || to) {
+      where.createdAt = {};
+      if (from) where.createdAt.gte = new Date(from);
+      if (to) where.createdAt.lte = new Date(to);
+    }
+
     const orders = await db.order.findMany({
       where,
       include: {
@@ -229,34 +245,7 @@ export async function GET(request: Request) {
       take: 100,
     });
 
-    // Omset TIDAK boleh dihitung dari 100 order teratas — warung sibuk bisa
-    // lewat 100 order/hari dan laporan jadi undercount. Agregat di DB.
-    const [paidAgg, cashAgg, qrisAgg] = await Promise.all([
-      db.order.aggregate({
-        where: { ...where, OR: [{ isPaid: true }, { status: 'completed' }] },
-        _sum: { totalAmount: true },
-        _count: true,
-      }),
-      db.order.aggregate({
-        where: { ...where, OR: [{ isPaid: true }, { status: 'completed' }], paymentMethod: 'cash' },
-        _sum: { totalAmount: true },
-      }),
-      db.order.aggregate({
-        where: { ...where, OR: [{ isPaid: true }, { status: 'completed' }], paymentMethod: 'qris' },
-        _sum: { totalAmount: true },
-      }),
-    ]);
-
-    return NextResponse.json({
-      success: true,
-      orders,
-      summary: {
-        paidCount: paidAgg._count,
-        paidRevenue: paidAgg._sum.totalAmount || 0,
-        cashRevenue: cashAgg._sum.totalAmount || 0,
-        qrisRevenue: qrisAgg._sum.totalAmount || 0,
-      },
-    });
+    return NextResponse.json({ success: true, orders });
   } catch (error) {
     console.error('Error fetching orders:', error);
     const { handleApiError } = await import('@/lib/api-auth');

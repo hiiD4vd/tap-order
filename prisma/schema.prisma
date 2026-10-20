@@ -32,6 +32,7 @@ model Venue {
   categories       Category[]
   menuItems        MenuItem[]
   orders           Order[]
+  orderCounters    OrderNumberCounter[]
   requests         TableRequest[]
   auditLogs        AuditLog[]
 
@@ -146,8 +147,24 @@ model Order {
   items         OrderItem[]
 
   @@index([venueId, status])
+  @@index([venueId, createdAt])
   @@index([tableId])
   @@map("orders")
+}
+
+/// Penomoran order harian per outlet. Tanpa tabel ini nomor dihitung dari
+/// `count()` di luar transaksi, sehingga dua pesanan bersamaan dapat nomor sama
+/// (`#101` kembar di dapur). Lihat src/app/api/orders/route.ts.
+model OrderNumberCounter {
+  id      String   @id @default(cuid())
+  venueId String
+  day     DateTime
+  seq     Int      @default(0)
+
+  venue Venue @relation(fields: [venueId], references: [id], onDelete: Cascade)
+
+  @@unique([venueId, day])
+  @@map("order_number_counters")
 }
 
 model OrderItem {
