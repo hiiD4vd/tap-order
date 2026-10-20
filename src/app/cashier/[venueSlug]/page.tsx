@@ -260,8 +260,11 @@ export default function CashierScreenPage() {
 
     const pollInterval = setInterval(async () => {
       try {
+        // Hari ini saja: order lama sudah selesai dan tidak perlu ikut tiap poll.
+        const since = new Date();
+        since.setHours(0, 0, 0, 0);
         const [ordersRes, requestsRes] = await Promise.all([
-          fetch(`/api/orders?venueSlug=${venueSlug}`),
+          fetch(`/api/orders?venueSlug=${venueSlug}&from=${since.toISOString()}`),
           fetch(`/api/requests?venueSlug=${venueSlug}`),
         ]);
         const ordersData = await ordersRes.json();

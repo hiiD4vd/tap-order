@@ -44,6 +44,8 @@ export default function OwnerDashboardPage() {
     paidRevenue: number;
     cashRevenue: number;
     qrisRevenue: number;
+    unclassifiedCount: number;
+    unclassifiedRevenue: number;
   } | null>(null);
   const [tables, setTables] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -91,7 +93,7 @@ export default function OwnerDashboardPage() {
     setTimeout(() => setToastMessage(null), 3500);
   };
 
-  const fetchDashboardData = async () => {
+  const fetchDashboardData = async (initialLoad = false) => {
     try {
       const [menuRes, ordersRes, tablesRes] = await Promise.all([
         fetch(`/api/menu/${venueSlug}`),
@@ -119,7 +121,12 @@ export default function OwnerDashboardPage() {
       }
       if (ordersData.success && ordersData.orders) {
         setOrders(ordersData.orders);
-        if (ordersData.summary) setSummary(ordersData.summary);
+      }
+      // Omset dari endpoint terpisah: tidak perlu di-fetch tiap polling 6 detik.
+      if (initialLoad) {
+        const summaryRes = await fetch('/api/orders/summary');
+        const summaryData = await summaryRes.json();
+        if (summaryData.success) setSummary(summaryData.summary);
       }
       if (tablesData.success && tablesData.tables) {
         setTables(tablesData.tables);
@@ -132,7 +139,7 @@ export default function OwnerDashboardPage() {
   };
 
   useEffect(() => {
-    fetchDashboardData();
+    fetchDashboardData(true);
   }, [venueSlug]);
 
   // 1-Click Out-of-Stock Toggle
@@ -354,7 +361,9 @@ export default function OwnerDashboardPage() {
   const qrisOmset = summary?.qrisRevenue ?? paidOrders.filter((o) => o.paymentMethod === 'qris').reduce((acc, o) => acc + o.totalAmount, 0);
   const paidCount = summary?.paidCount ?? paidOrders.length;
 
-  const otherOmset = totalOmset - cashOmset - qrisOmset;
+  // Sisa metode. Diambil dari server supaya order lunas lama berlabel 'cashier'
+  // kelihatan angkanya, bukan tersembunyi sebagai selisih.
+  const otherOmset = summary?.unclassifiedRevenue ?? totalOmset - cashOmset - qrisOmset;
 
   // Calculate Top Best Sellers
   const itemSalesMap = new Map<string, { name: string; totalQty: number; totalRevenue: number }>();

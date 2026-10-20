@@ -88,7 +88,13 @@ export default function KitchenDisplayPage() {
 
   const fetchKitchenOrders = async () => {
     try {
-      const res = await fetch(`/api/orders?venueSlug=${venueSlug}&status=pending,preparing,served`);
+      // Batasi ke order hari ini. Tanpa ini KDS menarik seluruh riwayat order
+      // tiap 5 detik; setelah sebulan pemakaian payload-nya membengkak terus.
+      const since = new Date();
+      since.setHours(0, 0, 0, 0);
+      const res = await fetch(
+        `/api/orders?venueSlug=${venueSlug}&status=pending,preparing,served&from=${since.toISOString()}`
+      );
       const data = await res.json();
       if (data.success && data.orders) {
         setOrders((prev) => {

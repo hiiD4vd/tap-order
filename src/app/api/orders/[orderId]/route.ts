@@ -32,11 +32,21 @@ export async function PATCH(
 
     const updateData: any = {};
     if (status) updateData.status = status;
+    // `cashier` itu nilai awal saat order dibuat (metode belum dipilih). Begitu
+    // kasir menandai lunas TANPA mengirim paymentMethod, tebak dari alur:
+    // order `completed` di Tap-Order selalu tunai. Selain itu jangan biarkan
+    // order lunas tetap berlabel `cashier`, karena laporan akan menghitungnya
+    // sebagai "Lainnya" dan omset cash/qris jadi salah.
+    const payingNow = isPaid === true || (status === 'completed' && existingOrder.isPaid === false);
     if (typeof isPaid === 'boolean') {
       updateData.isPaid = isPaid;
       if (isPaid) updateData.paidAt = new Date();
     }
-    if (paymentMethod) updateData.paymentMethod = paymentMethod;
+    if (paymentMethod) {
+      updateData.paymentMethod = paymentMethod;
+    } else if (payingNow && existingOrder.paymentMethod === 'cashier') {
+      updateData.paymentMethod = 'cash';
+    }
     if (cancelledReason) updateData.cancelledReason = cancelledReason.trim();
 
     // Table Transfer handling
