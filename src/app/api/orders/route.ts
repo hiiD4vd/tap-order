@@ -7,7 +7,7 @@ import { checkRateLimit, getClientKey, rateLimitResponse } from '@/lib/rate-limi
 
 export async function POST(request: Request) {
   try {
-    const orderLimit = checkRateLimit(getClientKey(request, 'order'), 10, 60 * 1000);
+    const orderLimit = await checkRateLimit(getClientKey(request, 'order'), 10, 60 * 1000);
     if (!orderLimit.allowed) return rateLimitResponse(orderLimit.retryAfter);
 
     const body = await parseBody(request, createOrderSchema);
@@ -19,7 +19,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Outlet tidak ditemukan' }, { status: 404 });
     }
     if (tableId) {
-      const table = await db.table.findFirst({ where: { id: tableId, venueId } });
+      const table = await db.table.findFirst({ where: { id: tableId, venueId, deletedAt: null } });
       if (!table || !table.isActive) {
         return NextResponse.json({ error: 'Meja tidak valid untuk outlet ini' }, { status: 400 });
       }
@@ -34,7 +34,8 @@ export async function POST(request: Request) {
     // 2. Fetch menu items to verify server-side prices
     const itemIds = items.map((i: any) => i.menuItemId).filter(Boolean);
     const dbMenuItems = await db.menuItem.findMany({
-      where: { id: { in: itemIds }, venueId },
+      // Menu terarsip tidak bisa dipesan, walau id-nya masih dikirim client.
+      where: { id: { in: itemIds }, venueId, deletedAt: null },
       include: {
         optionGroups: {
           include: { choices: true },
@@ -173,7 +174,7 @@ export async function POST(request: Request) {
     });
 
     // 5. Broadcast Realtime SSE to Cashier Screen!
-    sseBroadcaster.broadcast(venueId, 'NEW_ORDER', {
+    await sseBroadcaster.broadcast(venueId, 'NEW_ORDER', {
       order: newOrder,
       message: `Pesanan Baru ${newOrder.orderNumber} dari ${newOrder.table ? 'Meja ' + newOrder.table.number : 'Pelanggan'}`,
     });
