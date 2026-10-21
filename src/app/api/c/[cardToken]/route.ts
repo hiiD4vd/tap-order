@@ -33,7 +33,7 @@ export async function GET(
       },
     });
 
-    if (!table || !table.isActive) {
+    if (!table || !table.isActive || table.deletedAt) {
       return NextResponse.json(
         { error: 'Meja ini belum terdaftar atau sedang dinonaktifkan' },
         { status: 404 }

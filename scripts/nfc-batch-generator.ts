@@ -22,6 +22,8 @@ async function main() {
     where: { slug: venueSlug },
     include: {
       tables: {
+        // Kartu fisik hanya untuk meja aktif; meja terarsip jangan dicetak.
+        where: { deletedAt: null },
         orderBy: { number: 'asc' },
       },
     },

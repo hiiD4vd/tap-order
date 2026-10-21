@@ -17,7 +17,8 @@ export default async function TableEntryPage({
     },
   });
 
-  if (!table || !table.isActive) {
+  // Meja terarsip (soft delete) tidak boleh lagi bisa dibuka dari chip NFC lama.
+  if (!table || !table.isActive || table.deletedAt) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
         <div className="bg-white rounded-2xl shadow-xl border border-slate-100 p-8 max-w-md w-full text-center">

@@ -7,14 +7,14 @@ import { checkRateLimit, getClientKey, rateLimitResponse } from '@/lib/rate-limi
 
 export async function POST(request: Request) {
   try {
-    const requestLimit = checkRateLimit(getClientKey(request, 'table-request'), 3, 60 * 1000);
+    const requestLimit = await checkRateLimit(getClientKey(request, 'table-request'), 3, 60 * 1000);
     if (!requestLimit.allowed) return rateLimitResponse(requestLimit.retryAfter);
 
     const body = await parseBody(request, createRequestSchema);
     const { venueId, tableId, type = 'waiter' } = body; // public guest request
 
     const table = await db.table.findFirst({
-      where: { id: tableId, venueId, isActive: true },
+      where: { id: tableId, venueId, isActive: true, deletedAt: null },
     });
 
     if (!table) {
@@ -50,7 +50,7 @@ export async function POST(request: Request) {
     });
 
     // Broadcast SSE to Cashier!
-    sseBroadcaster.broadcast(venueId, 'NEW_REQUEST', {
+    await sseBroadcaster.broadcast(venueId, 'NEW_REQUEST', {
       request: newRequest,
       message: `Meja ${table.number} ${type === 'bill' ? 'meminta Bill / Tagihan' : 'memanggil Pelayan'}`,
     });
@@ -96,7 +96,7 @@ export async function PATCH(request: Request) {
       include: { table: true },
     });
 
-    sseBroadcaster.broadcast(updated.venueId, 'REQUEST_RESOLVED', {
+    await sseBroadcaster.broadcast(updated.venueId, 'REQUEST_RESOLVED', {
       requestId: updated.id,
       tableNumber: updated.table.number,
     });
