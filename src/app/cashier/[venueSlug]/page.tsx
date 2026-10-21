@@ -641,7 +641,7 @@ export default function CashierScreenPage() {
             {requests.map((r) => (
               <span key={r.id} className="bg-amber-900/60 px-2.5 py-1 rounded-lg border border-amber-700/50 flex items-center gap-1.5">
                 <span>
-                  <b>Meja {r.table.number}</b> {r.type === 'bill' ? 'Minta Bill / Nota' : 'Panggil Pelayan'}
+                  <b>Meja {r.table.number}</b> {({ waiter: 'Panggil Pelayan', tissue: 'Minta Tisu', water: 'Air Putih', condiment: 'Sambal / Kecap', clean: 'Bersihkan Meja' } as Record<string, string>)[r.type] || 'Minta Bantuan'}
                 </span>
                 <button
                   onClick={() => handleResolveRequest(r.id)}

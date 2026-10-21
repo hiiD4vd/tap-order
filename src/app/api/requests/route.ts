@@ -41,25 +41,19 @@ export async function POST(request: Request) {
         include: { table: true },
       });
 
-      if (type === 'bill') {
-        await tx.table.update({
-          where: { id: tableId },
-          data: { status: 'bill_requested' },
-        });
-      }
       return created;
     });
 
     // Broadcast SSE to Cashier!
     await sseBroadcaster.broadcast(venueId, 'NEW_REQUEST', {
       request: newRequest,
-      message: `Meja ${table.number} ${type === 'bill' ? 'meminta Bill / Tagihan' : 'memanggil Pelayan'}`,
+      message: `Meja ${table.number} meminta bantuan: ${type}`,
     });
 
     return NextResponse.json({
       success: true,
       request: newRequest,
-      message: type === 'bill' ? 'Permintaan tagihan telah dikirim ke kasir' : 'Pelayan sedang menuju ke meja Anda',
+      message: 'Permintaan bantuan telah dikirim ke kasir',
     });
   } catch (error: any) {
     if (error?.code === 'P2002') {

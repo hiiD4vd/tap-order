@@ -243,40 +243,40 @@ async function runRealUserSimulation() {
   await sleep(1000);
 
   // =========================================================================
-  // SKENARIO 6: BUDI SELESAI MAKAN & TEKAN "MINTA BILL" DARI MEJA
+  // SKENARIO 6: BUDI MEMINTA BANTUAN PELAYAN DARI MEJA
   // =========================================================================
   logStep(
     'PELANGGAN 1 (Budi - Meja 02)',
-    'Menekan Tombol "Minta Tagihan / Bill" di Layar HP',
-    'Budi selesai makan dan memanggil kasir untuk minta total tagihan.'
+    'Menekan Tombol "Panggil Pelayan" di Layar HP',
+    'Budi meminta bantuan pelayan dari meja.'
   );
 
-  const billReqRes = await apiFetch(`${BASE_URL}/api/requests`, {
+  const waiterReqRes = await apiFetch(`${BASE_URL}/api/requests`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      venueId,
-      tableId: table2.id,
-      cardToken: table2.cardToken,
-      type: 'bill',
-    }),
+    body: JSON.stringify({ venueId, tableId: table2.id, cardToken: table2.cardToken, type: 'waiter' }),
   });
-  const billReq = await billReqRes.json();
-
-  // Verify table status is now bill_requested
-  const checkTable2 = await db.table.findUnique({ where: { id: table2.id } });
-  console.log(`  \x1b[32m✔ Hasil\x1b[0m: Status Meja 02 di sistem kasir otomatis menjadi [${checkTable2?.status.toUpperCase()}]`);
+  const waiterReq = await waiterReqRes.json();
+  if (!waiterReq.success) throw new Error('Permintaan pelayan Budi gagal');
+  console.log('  \x1b[32m✔ Hasil\x1b[0m: Permintaan pelayan Budi masuk ke kasir.');
 
   await sleep(1000);
 
   // =========================================================================
-  // SKENARIO 7: KASIR MELAKUKAN PELUNASAN BILL & TUTUP MEJA 02
+  // SKENARIO 7: KASIR MENYELESAIKAN PESANAN DENGAN PEMBAYARAN TUNAI
   // =========================================================================
   logStep(
     'STAF KASIR (Rian)',
     'Menerima Pembayaran Tunai & Menutup Meja 02',
     `Total tagihan Budi adalah Rp 30.000. Budi membayar dengan uang tunai Rp 50.000. Kasir menginput uang dan mencetak struk.`
   );
+
+  // Dapur selesai dulu. State machine menolak loncat preparing → completed.
+  const serveRes = await apiFetch(`${BASE_URL}/api/orders/${orderBudi.id}`, {
+    method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ status: 'served' }),
+  });
+  if (!serveRes.ok) throw new Error('Gagal menandai pesanan Budi served');
 
   const totalBudi = orderBudi.totalAmount;
   const cashGiven = 50000;
@@ -359,6 +359,10 @@ async function runRealUserSimulation() {
   console.log(`      Total Omset Lunas Hari Ini: Rp ${totalOmsetRecorded.toLocaleString('id-ID')}`);
   console.log(`      Transaksi Lunas: ${paidList.length} pesanan`);
   console.log(`      Transaksi Sedang Berjalan: ${allOrdersData.orders.length - paidList.length} pesanan`);
+
+  // Hapus hanya tenant yang dibuat run ini. Jangan biarkan simulasi mengotori data lokal.
+  await db.venue.delete({ where: { id: venueId } });
+  console.log('  ✔ Data uji simulasi dibersihkan (tenant test saja).');
 
   // Final Banner
   console.log('\n\x1b[1m\x1b[32m╔════════════════════════════════════════════════════════════════════╗');

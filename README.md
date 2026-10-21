@@ -37,7 +37,7 @@
 
 ### C. Model Bisnis & Harga (Playbook Penjualan UMKM)
 * **Paket Starter**: **Rp 99.000 / bulan** (s/d 15 meja, saklar stok habis, rekap omset).
-* **Paket Pro**: **Rp 199.000 / bulan** (meja tak terbatas, panggil pelayan & minta bill, multi-kasir, ekspor laporan penjualan).
+* **Paket Pro**: **Rp 199.000 / bulan** (meja tak terbatas, panggil pelayan, multi-kasir, ekspor laporan penjualan).
 * **Starter Pack Hardware**: **Rp 350.000** (15 kartu NFC akrilik + standee + onboarding input menu & training kasir 5 menit).
 * **Proyeksi Finansial**: 30 kafe pelanggan = **~Rp 5.970.000/bulan MRR pasif** + margin penjualan kartu fisik.
 * Rujukan lengkap playbook sales: Lihat [`PITCH_DECK_UMKM.md`](file:///d:/daud/projek%20bisnis/Bismillah/PITCH_DECK_UMKM.md).
@@ -57,7 +57,7 @@ graph TD
     E[roshanx0-saas] -->|Multi-tenant Isolation, Tenant Subdomain/Slug Architecture| Core
 ```
 
-1. **`satisfecho-pos`**: Diadopsi untuk arsitektur KDS dapur real-time, grid visual meja (Hijau = kosong, Kuning = aktif, Merah = minta bill), dan Web Audio API lonceng notifikasi *"Ding!"*.
+1. **`satisfecho-pos`**: Diadopsi untuk arsitektur KDS dapur real-time, grid visual meja (Hijau = kosong, Kuning = aktif), dan Web Audio API lonceng notifikasi *"Ding!"*.
 2. **`tastyigniter`**: Diadopsi untuk pemodelan data relasional menu: kategori, varian (*option groups*: single/multiple choice, level pedas, suhu dingin/panas, delta harga), serta isolasi multi-outlet.
 3. **`sofra`**: Diadopsi untuk antarmuka katalog menu tamu yang sangat ringan, mobile-first, dan interaktif.
 4. **`hanlinhtet-pos-qr`**: Diadopsi untuk logika pemesanan meja dan alur pembayaran kasir.
@@ -121,11 +121,11 @@ graph TD
 ```
 
 ### Entitas Kunci:
-1. **`Venue`**: Data tenant kafe/resto. Memuat pengaturan pajak restoran PB1 (`taxRate`, misal 10%), biaya layanan (`serviceRate`, misal 5%), gambar QRIS (`qrisImageUrl`), status toko buka/tutup (`isOpen`), dan PIN kasir (`pinCashier`).
-2. **`Table`**: Meja fisik. Menyimpan `cardToken` (kode acak unik 8 karakter, contoh: `SNJ001` atau `A7X92K`) yang ditulis pada kartu NFC fisik. Status meja: `empty`, `active`, `bill_requested`.
+1. **`Venue`**: Data tenant kafe/resto. Memuat pajak (`taxRate`), service (`serviceRate`), status buka/tutup (`isOpen`), PIN kasir, dan konfigurasi hub NFC (WiFi, Google Maps, Instagram, promo).
+2. **`Table`**: Meja fisik. Menyimpan `cardToken` CSPRNG 20 karakter yang ditulis pada kartu NFC fisik. Status meja: `empty` atau `active`.
 3. **`MenuItem` & `OptionGroup`**: Katalog menu dengan saklar ketersediaan 1-klik (`isAvailable`) dan opsi varian (*modifiers*).
-4. **`Order` & `OrderItem`**: Pesanan meja. Menyimpan snapshot nama & harga menu pada saat dipesan, kalkulasi otomatis PB1 & service charge, status pesanan (`pending` $\rightarrow$ `preparing` $\rightarrow$ `served` $\rightarrow$ `completed` / `cancelled`).
-5. **`TableRequest`**: Permintaan pelanggan dari meja untuk `waiter` (panggil pelayan) atau `bill` (minta nota).
+4. **`Order` & `OrderItem`**: Snapshot menu/harga dan lifecycle ketat: `pending` → `preparing` → `served` → `completed`; void dari tahap aktif menjadi `cancelled`.
+5. **`TableRequest`**: Permintaan bantuan pelanggan dari meja: pelayan, tisu, air, sambal/kecap, atau bersihkan meja.
 6. **`AuditLog`**: Pencatatan riwayat anti-kecurangan kasir setiap kali terjadi aksi penting seperti `VOID_ORDER` atau pembatalan pesanan.
 
 ---

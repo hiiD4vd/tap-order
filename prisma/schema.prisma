@@ -99,7 +99,7 @@ model Table {
   number      String         // e.g. "01", "02", "VIP 1"
   label       String?        // e.g. "Lantai 1", "Outdoor"
   cardToken   String         @unique // Token acak 20 char (CSPRNG) yang di-burn ke chip NFC/QR
-  status      String         @default("empty") // "empty", "active", "bill_requested"
+  status      String         @default("empty") // "empty", "active"
   isActive    Boolean        @default(true)
   deletedAt   DateTime? // soft delete: meja diarsip, bukan dihapus
   cardTokenRotatedAt DateTime? // terakhir token NFC diganti (kartu hilang)

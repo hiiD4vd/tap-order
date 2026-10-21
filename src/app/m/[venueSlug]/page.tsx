@@ -284,7 +284,7 @@ export default function CustomerMenuPage() {
     return cart.reduce((acc, it) => acc + it.quantity, 0);
   }, [cart]);
 
-  const handleTableRequest = async (type: 'waiter' | 'bill') => {
+  const handleTableRequest = async () => {
     if (!venue || !tableId) {
       alert('Nomor meja tidak terdeteksi. Silakan scan ulang kartu meja Anda.');
       return;
@@ -298,12 +298,12 @@ export default function CustomerMenuPage() {
           venueId: venue.id,
           tableId,
           cardToken: tokenFromQuery || sessionStorage.getItem('tap_cardToken') || '',
-          type,
+          type: 'waiter',
         }),
       });
       const data = await res.json();
       if (data.success) {
-        showToast(type === 'bill' ? ' Nota tagihan diminta ke kasir' : ' Pelayan segera menuju ke meja Anda');
+        showToast('Pelayan segera menuju ke meja Anda');
       } else {
         alert(data.error || 'Gagal mengirim permintaan');
       }
@@ -430,7 +430,7 @@ export default function CustomerMenuPage() {
           </div>
 
           <button
-            onClick={() => handleTableRequest('waiter')}
+            onClick={() => handleTableRequest()}
             title="Panggil Pelayan"
             className="p-2 text-slate-600 hover:text-emerald-700 hover:bg-emerald-50 active:scale-95 rounded-xl border border-slate-200 transition-all flex items-center gap-1 text-xs font-medium"
           >
@@ -1063,25 +1063,10 @@ export default function CustomerMenuPage() {
               </div>
             </div>
 
-            <div className="p-4 border-t border-slate-100 bg-slate-50 grid grid-cols-2 gap-2">
-              <button
-                onClick={() => {
-                  setIsOrderTrackingOpen(false);
-                  setIsQrisModalOpen(true);
-                }}
-                className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-xl text-xs transition-all flex items-center justify-center gap-1.5 shadow-md active:scale-95"
-              >
-                <QrCode className="w-4 h-4" />
-                <span>Bayar QRIS di Meja</span>
-              </button>
-
-              <button
-                onClick={() => handleTableRequest('bill')}
-                className="w-full bg-slate-900 hover:bg-black text-white font-bold py-3 rounded-xl text-xs transition-all flex items-center justify-center gap-1.5 active:scale-95"
-              >
-                <Receipt className="w-4 h-4" />
-                <span>Minta Bill Kasir</span>
-              </button>
+            <div className="p-4 border-t border-slate-100 bg-slate-50">
+              <p className="text-center text-xs text-slate-500">
+                Pembayaran online otomatis akan tersedia setelah integrasi QRIS selesai.
+              </p>
             </div>
           </div>
         </div>
@@ -1125,16 +1110,9 @@ export default function CustomerMenuPage() {
               </div>
             </div>
 
-            <button
-              onClick={() => {
-                handleTableRequest('bill');
-                setIsQrisModalOpen(false);
-                showToast('✓ Konfirmasi pembayaran dikirim ke kasir!');
-              }}
-              className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3.5 rounded-xl text-xs transition-all shadow-md active:scale-95"
-            >
-              Saya Sudah Transfer via QRIS
-            </button>
+            <p className="text-xs text-slate-500 leading-relaxed">
+              Konfirmasi pembayaran otomatis belum aktif. Jangan lakukan transfer lewat layar ini sebelum integrasi QRIS resmi tersedia.
+            </p>
           </div>
         </div>
       )}
@@ -1179,7 +1157,7 @@ export default function CustomerMenuPage() {
                 Pesan Menu Lainnya +
               </button>
               <button
-                onClick={() => handleTableRequest('waiter')}
+                onClick={() => handleTableRequest()}
                 className="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold py-2.5 rounded-xl text-xs transition-all"
               >
                 Panggil Pelayan ke Meja

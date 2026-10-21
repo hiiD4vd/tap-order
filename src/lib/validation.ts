@@ -87,8 +87,7 @@ export const createRequestSchema = z.object({
   tableId: cuidLike,
   // Table capability from NFC URL; blocks forged waiter/bill requests.
   cardToken: z.string().trim().min(1).max(128),
-  // `bill` dipertahankan untuk outlet yang masih bayar di akhir.
-  type: z.enum(['waiter', 'bill', 'tissue', 'water', 'condiment', 'clean']).optional(),
+  type: z.enum(['waiter', 'tissue', 'water', 'condiment', 'clean']).optional(),
 }).passthrough();
 
 // ---------- /api/feedback (tamu, anonim) ----------

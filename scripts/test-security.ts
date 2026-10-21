@@ -23,6 +23,7 @@ async function main() {
   // Permintaan meja tanpa capability NFC harus ditolak; tableId bukan rahasia.
   assert.equal(createRequestSchema.safeParse({ venueId: 'venue1', tableId: 'table1', type: 'waiter' }).success, false);
   assert.equal(createRequestSchema.safeParse({ venueId: 'venue1', tableId: 'table1', cardToken: 'CAPABILITYTOKEN123', type: 'waiter' }).success, true);
+  assert.equal(createRequestSchema.safeParse({ venueId: 'venue1', tableId: 'table1', cardToken: 'CAPABILITYTOKEN123', type: 'bill' }).success, false);
 
   // Langganan: tanpa expiresAt = permanen, masa depan = aktif, masa lalu = kedaluwarsa.
   const now = new Date('2026-06-01T00:00:00Z').getTime();
