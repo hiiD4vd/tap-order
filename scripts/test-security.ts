@@ -20,7 +20,9 @@ async function main() {
 
   assert.equal(createOrderSchema.safeParse({ venueId: 'venue1', items: [] }).success, false);
   assert.equal(createRequestSchema.safeParse({ venueId: 'venue1', tableId: 'table1', type: 'bad' }).success, false);
-  assert.equal(createRequestSchema.safeParse({ venueId: 'venue1', tableId: 'table1', type: 'waiter' }).success, true);
+  // Permintaan meja tanpa capability NFC harus ditolak; tableId bukan rahasia.
+  assert.equal(createRequestSchema.safeParse({ venueId: 'venue1', tableId: 'table1', type: 'waiter' }).success, false);
+  assert.equal(createRequestSchema.safeParse({ venueId: 'venue1', tableId: 'table1', cardToken: 'CAPABILITYTOKEN123', type: 'waiter' }).success, true);
 
   // Langganan: tanpa expiresAt = permanen, masa depan = aktif, masa lalu = kedaluwarsa.
   const now = new Date('2026-06-01T00:00:00Z').getTime();

@@ -11,10 +11,11 @@ export async function POST(request: Request) {
     if (!requestLimit.allowed) return rateLimitResponse(requestLimit.retryAfter);
 
     const body = await parseBody(request, createRequestSchema);
-    const { venueId, tableId, type = 'waiter' } = body; // public guest request
+    const { venueId, tableId, cardToken, type = 'waiter' } = body; // public guest request
 
+    // tableId bisa terlihat di URL/menu; token kartu adalah capability pemanggil.
     const table = await db.table.findFirst({
-      where: { id: tableId, venueId, isActive: true, deletedAt: null },
+      where: { id: tableId, venueId, cardToken, isActive: true, deletedAt: null },
     });
 
     if (!table) {

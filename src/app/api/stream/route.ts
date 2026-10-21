@@ -18,7 +18,11 @@ export async function GET(request: NextRequest) {
       return new Response('Unauthorized', { status: 403 });
     }
 
-    const clientId = Math.random().toString(36).substring(2, 9);
+    const clientId = crypto.randomUUID();
+    const encoder = new TextEncoder();
+    // Proxy/CDN sering memutus koneksi SSE yang diam. Comment heartbeat tidak
+    // mengubah event UI, tapi menjaga koneksi tetap hidup.
+    let heartbeat: ReturnType<typeof setInterval> | undefined;
 
     const stream = new ReadableStream({
       start(controller) {
@@ -28,12 +32,20 @@ export async function GET(request: NextRequest) {
           controller,
         });
 
-        const encoder = new TextEncoder();
         controller.enqueue(
           encoder.encode(`event: CONNECTED\ndata: ${JSON.stringify({ clientId, timestamp: Date.now() })}\n\n`)
         );
+        heartbeat = setInterval(() => {
+          try {
+            controller.enqueue(encoder.encode(`: heartbeat ${Date.now()}\n\n`));
+          } catch {
+            if (heartbeat) clearInterval(heartbeat);
+            sseBroadcaster.removeClient(clientId);
+          }
+        }, 25_000);
       },
       cancel() {
+        if (heartbeat) clearInterval(heartbeat);
         sseBroadcaster.removeClient(clientId);
       },
     });
@@ -43,6 +55,7 @@ export async function GET(request: NextRequest) {
         'Content-Type': 'text/event-stream',
         'Cache-Control': 'no-cache, no-transform',
         Connection: 'keep-alive',
+        'X-Accel-Buffering': 'no',
       },
     });
   } catch (error: any) {

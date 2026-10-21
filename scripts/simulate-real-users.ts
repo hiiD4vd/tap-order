@@ -42,7 +42,8 @@ async function runRealUserSimulation() {
 
   const regRes = await apiFetch(`${BASE_URL}/api/register`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    // Simulasi memakai IP fixture unik supaya tidak berbagi bucket dengan run sebelumnya.
+    headers: { 'Content-Type': 'application/json', 'X-Forwarded-For': `198.18.${Date.now() % 250}.1` },
     body: JSON.stringify({
       name: 'Warkop Modern Juanda',
       slug: testSlug,
@@ -148,6 +149,7 @@ async function runRealUserSimulation() {
     body: JSON.stringify({
       venueId,
       tableId: table2.id,
+      cardToken: table2.cardToken,
       customerName: 'Budi Santoso',
       customerNote: 'Tolong pedas banget ya bang',
       items: [
@@ -182,6 +184,7 @@ async function runRealUserSimulation() {
     body: JSON.stringify({
       venueId,
       tableId: table4.id,
+      cardToken: table4.cardToken,
       customerName: 'Siti Rahma',
       items: [{ menuItemId: kopiItem.id, quantity: 2 }],
     }),
@@ -195,6 +198,7 @@ async function runRealUserSimulation() {
     body: JSON.stringify({
       venueId,
       tableId: table4.id,
+      cardToken: table4.cardToken,
       type: 'waiter',
     }),
   });
@@ -253,6 +257,7 @@ async function runRealUserSimulation() {
     body: JSON.stringify({
       venueId,
       tableId: table2.id,
+      cardToken: table2.cardToken,
       type: 'bill',
     }),
   });
@@ -321,6 +326,7 @@ async function runRealUserSimulation() {
     body: JSON.stringify({
       venueId,
       tableId: table5.id,
+      cardToken: table5.cardToken,
       customerName: 'Tamu Iseng',
       items: [{ menuItemId: mieItem.id, quantity: 1 }],
     }),

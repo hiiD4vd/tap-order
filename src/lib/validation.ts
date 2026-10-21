@@ -64,6 +64,8 @@ export const orderItemSchema = z.object({
 
 export const createOrderSchema = z.object({
   tableId: cuidLike.nullable().optional(),
+  // Capability dari NFC scan. Legacy kartu pendek tetap didukung saat migrasi.
+  cardToken: z.string().trim().min(1).max(128).optional(),
   venueId: cuidLike,
   customerName: z.string().trim().max(80).optional(),
   customerNote: z.string().trim().max(300).optional(),
@@ -83,6 +85,8 @@ export const updateOrderSchema = z.object({
 export const createRequestSchema = z.object({
   venueId: cuidLike,
   tableId: cuidLike,
+  // Table capability from NFC URL; blocks forged waiter/bill requests.
+  cardToken: z.string().trim().min(1).max(128),
   type: z.enum(['waiter', 'bill']).optional(),
 }).passthrough();
 

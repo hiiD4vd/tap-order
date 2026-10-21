@@ -124,19 +124,17 @@ export default function CustomerMenuPage() {
     setTimeout(() => setToastMessage(null), 3500);
   };
 
-  const fetchActiveTableOrder = async (targetTableId?: string) => {
-    const tid = targetTableId || tableId;
-    if (!venueSlug || !tid) return;
+  const fetchActiveTableOrder = async () => {
+    // Endpoint orders adalah kasir-only. Tamu membaca order mejanya melalui
+    // capability token NFC, bukan ID meja yang bisa terlihat di URL.
+    const token = tokenFromQuery || sessionStorage.getItem('tap_cardToken');
+    if (!token) return;
     try {
-      const res = await fetch(`/api/orders?venueSlug=${venueSlug}&tableId=${tid}&status=pending,preparing,served`);
+      const res = await fetch(`/api/c/${encodeURIComponent(token)}`);
       const data = await res.json();
-      if (data.success && data.orders && data.orders.length > 0) {
-        setActiveOrder(data.orders[0]);
-      } else {
-        setActiveOrder(null);
-      }
+      setActiveOrder(data.success ? data.activeOrder : null);
     } catch {
-      // ignore
+      // Offline/network error: biarkan status terakhir tetap terlihat.
     }
   };
 
@@ -164,6 +162,9 @@ export default function CustomerMenuPage() {
       currentTid = tableIdFromQuery;
       sessionStorage.setItem('tap_tableNumber', tableNumberFromQuery);
       sessionStorage.setItem('tap_tableId', tableIdFromQuery);
+      // Token datang dari scan NFC/QR. Simpan per-tab agar request berikutnya
+      // tetap membuktikan meja yang sama tanpa login tamu.
+      if (tokenFromQuery) sessionStorage.setItem('tap_cardToken', tokenFromQuery);
     } else {
       const savedNum = sessionStorage.getItem('tap_tableNumber');
       const savedId = sessionStorage.getItem('tap_tableId');
@@ -175,15 +176,15 @@ export default function CustomerMenuPage() {
     }
 
     if (currentTid) {
-      fetchActiveTableOrder(currentTid);
+      fetchActiveTableOrder();
     }
   }, [tableNumberFromQuery, tableIdFromQuery]);
 
   useEffect(() => {
     if (!tableId) return;
-    const interval = setInterval(() => fetchActiveTableOrder(tableId), 6000);
+    const interval = setInterval(fetchActiveTableOrder, 6000);
     return () => clearInterval(interval);
-  }, [venueSlug, tableId]);
+  }, [venueSlug, tableId, tokenFromQuery]);
 
   const handleOpenItemModal = (item: MenuItem) => {
     if (!item.isAvailable) return;
@@ -295,6 +296,7 @@ export default function CustomerMenuPage() {
         body: JSON.stringify({
           venueId: venue.id,
           tableId,
+          cardToken: tokenFromQuery || sessionStorage.getItem('tap_cardToken') || '',
           type,
         }),
       });
@@ -320,6 +322,7 @@ export default function CustomerMenuPage() {
         body: JSON.stringify({
           venueId: venue.id,
           tableId: tableId || null,
+          cardToken: tableId ? (tokenFromQuery || sessionStorage.getItem('tap_cardToken') || '') : undefined,
           customerName: customerName.trim() || (tableNumber ? `Meja ${tableNumber}` : 'Tamu'),
           items: cart.map((c) => ({
             menuItemId: c.menuItemId,

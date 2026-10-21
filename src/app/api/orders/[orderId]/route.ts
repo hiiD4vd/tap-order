@@ -32,6 +32,12 @@ export async function PATCH(
 
     const updateData: any = {};
     if (status) updateData.status = status;
+    // Void membatalkan penjualan, bukan sekadar mengubah label dapur. Tanpa ini
+    // order yang pernah dibayar tetap ikut omset/cash/QRIS.
+    if (status === 'cancelled') {
+      updateData.isPaid = false;
+      updateData.paidAt = null;
+    }
     // `cashier` itu nilai awal saat order dibuat (metode belum dipilih). Begitu
     // kasir menandai lunas TANPA mengirim paymentMethod, tebak dari alur:
     // order `completed` di Tap-Order selalu tunai. Selain itu jangan biarkan
@@ -48,11 +54,18 @@ export async function PATCH(
       updateData.paymentMethod = 'cash';
     }
     if (cancelledReason) updateData.cancelledReason = cancelledReason.trim();
+    // Status cancelled menang atas payload lain, termasuk isPaid:true yang salah kirim.
+    if (status === 'cancelled') {
+      updateData.isPaid = false;
+      updateData.paidAt = null;
+    }
 
     // Table Transfer handling
     const oldTableId = existingOrder.tableId;
     if (newTableId && newTableId !== oldTableId) {
-      const newTable = await db.table.findFirst({ where: { id: newTableId, venueId: session.venueId, isActive: true } });
+      const newTable = await db.table.findFirst({
+        where: { id: newTableId, venueId: session.venueId, isActive: true, deletedAt: null },
+      });
       if (!newTable) {
         return NextResponse.json({ error: 'Meja tujuan tidak valid' }, { status: 400 });
       }

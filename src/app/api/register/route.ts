@@ -75,12 +75,14 @@ export async function POST(request: Request) {
       const count = Math.min(50, Math.max(1, tablesCount || 10));
       for (let i = 1; i <= count; i++) {
         const numStr = i < 10 ? `0${i}` : `${i}`;
-        const token = generateToken(6);
+        // 20 chars dari alfabet 32 karakter ≈100 bit entropy. Prefix slug tetap
+        // hanya label; token acaknya menjadi capability NFC sebenarnya.
+        const token = generateToken(20);
         await tx.table.create({
           data: {
             venueId: venue.id,
             number: numStr,
-            cardToken: `${cleanSlug.substring(0, 3).toUpperCase()}${token}`,
+            cardToken: token,
             label: i <= 5 ? 'Indoor' : 'Outdoor',
           },
         });

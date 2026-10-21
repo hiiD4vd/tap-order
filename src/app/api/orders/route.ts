@@ -11,7 +11,7 @@ export async function POST(request: Request) {
     if (!orderLimit.allowed) return rateLimitResponse(orderLimit.retryAfter);
 
     const body = await parseBody(request, createOrderSchema);
-    const { venueId, tableId, customerName, customerNote, items } = body;
+    const { venueId, tableId, cardToken, customerName, customerNote, items } = body;
 
     // 1. Fetch venue to check store status and tax rates
     const venue = await db.venue.findUnique({ where: { id: venueId } });
@@ -19,9 +19,12 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Outlet tidak ditemukan' }, { status: 404 });
     }
     if (tableId) {
-      const table = await db.table.findFirst({ where: { id: tableId, venueId, deletedAt: null } });
+      // tableId bukan rahasia; hanya token NFC yang membuktikan pemesan berada di meja itu.
+      const table = await db.table.findFirst({
+        where: { id: tableId, venueId, cardToken: cardToken || '__missing__', deletedAt: null },
+      });
       if (!table || !table.isActive) {
-        return NextResponse.json({ error: 'Meja tidak valid untuk outlet ini' }, { status: 400 });
+        return NextResponse.json({ error: 'Kartu meja tidak valid. Silakan scan ulang kartu NFC/QR.' }, { status: 400 });
       }
     }
     if (venue.isOpen === false) {

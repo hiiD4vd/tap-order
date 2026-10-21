@@ -14,10 +14,10 @@ export function formatRupiah(amount: number): string {
 }
 
 export function generateToken(length = 6): string {
-  const chars = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
+  const chars = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ'; // 32 chars
+  const bytes = new Uint8Array(length);
+  crypto.getRandomValues(bytes); // Web Crypto CSPRNG: browser + modern Node.
   let result = '';
-  for (let i = 0; i < length; i++) {
-    result += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
+  for (const byte of bytes) result += chars.charAt(byte & 31);
   return result;
 }
