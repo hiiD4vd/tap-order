@@ -1,8 +1,18 @@
-import { notFound, redirect } from 'next/navigation';
+import { redirect } from 'next/navigation';
 import { db } from '@/lib/db';
 import Link from 'next/link';
-import { Utensils, ArrowRight, Smartphone, CheckCircle2 } from 'lucide-react';
+import { Smartphone } from 'lucide-react';
+import TableHub from './TableHub';
 
+/**
+ * Halaman yang dibuka kartu NFC/QR meja.
+ *
+ * URL `/c/[cardToken]` TIDAK BOLEH BERUBAH — sudah di-burn ke chip fisik.
+ *
+ * Dulu halaman ini langsung redirect ke katalog. Sekarang menampilkan hub:
+ * pesan, status pesanan, panggil pelayan, wifi, ulasan, kritik & saran.
+ * Katalog tetap satu tap dari sini dan tetap jadi tile paling menonjol.
+ */
 export default async function TableEntryPage({
   params,
 }: {
@@ -12,9 +22,7 @@ export default async function TableEntryPage({
 
   const table = await db.table.findUnique({
     where: { cardToken },
-    include: {
-      venue: true,
-    },
+    include: { venue: true },
   });
 
   // Meja terarsip (soft delete) tidak boleh lagi bisa dibuka dari chip NFC lama.
@@ -27,7 +35,7 @@ export default async function TableEntryPage({
           </div>
           <h1 className="text-xl font-bold text-slate-800 mb-2">Kartu Meja Belum Terdaftar</h1>
           <p className="text-slate-600 text-sm mb-6 leading-relaxed">
-            Kode kartu <code className="bg-slate-100 px-2 py-0.5 rounded font-mono text-amber-700">{cardToken}</code> belum dihubungkan ke meja aktif di sistem. Silakan hubungi kasir atau pelayan.
+            Kartu ini belum dihubungkan ke meja aktif di sistem. Silakan hubungi kasir atau pelayan.
           </p>
           <Link
             href="/"
@@ -40,6 +48,85 @@ export default async function TableEntryPage({
     );
   }
 
-  // Redirect directly into the customer mobile menu with table params
-  redirect(`/m/${table.venue.slug}?tableId=${table.id}&tableNumber=${encodeURIComponent(table.number)}&token=${cardToken}`);
+  // Tamu yang sudah pernah tap boleh langsung ke katalog via ?go=menu,
+  // supaya alur "pesan lagi" tidak terhalang satu tap tambahan.
+  const menuUrl = `/m/${table.venue.slug}?tableId=${table.id}&tableNumber=${encodeURIComponent(
+    table.number
+  )}&token=${cardToken}`;
+
+  // Log tap: bahan analytics jam sibuk & deteksi chip rusak (owner-only).
+  // Jangan pernah menggagalkan halaman tamu karena logging gagal.
+  try {
+    await db.tableTap.create({
+      data: { venueId: table.venueId, tableId: table.id },
+    });
+  } catch {
+    // diabaikan dengan sengaja
+  }
+
+  // Order aktif meja ini. Filter berdasarkan STATUS saja, bukan isPaid:
+  // dengan alur bayar-di-depan, order lunas masih perlu dilacak sampai selesai.
+  const activeOrder = await db.order.findFirst({
+    where: {
+      tableId: table.id,
+      status: { in: ['awaiting_payment', 'pending', 'preparing', 'served'] },
+    },
+    orderBy: { createdAt: 'desc' },
+    select: {
+      id: true,
+      orderNumber: true,
+      status: true,
+      isPaid: true,
+      totalAmount: true,
+      createdAt: true,
+      items: { select: { nameSnapshot: true, quantity: true } },
+    },
+  });
+
+  // Estimasi tunggu: berapa order yang masuk dapur lebih dulu.
+  let queueAhead = 0;
+  if (activeOrder) {
+    queueAhead = await db.order.count({
+      where: {
+        venueId: table.venueId,
+        status: { in: ['pending', 'preparing'] },
+        createdAt: { lt: activeOrder.createdAt },
+      },
+    });
+  }
+
+  const v = table.venue;
+
+  return (
+    <TableHub
+      menuUrl={menuUrl}
+      cardToken={cardToken}
+      venue={{
+        id: v.id,
+        name: v.name,
+        slug: v.slug,
+        isOpen: v.isOpen,
+        whatsapp: v.whatsapp,
+        address: v.address,
+        wifiSsid: v.wifiSsid,
+        wifiPassword: v.wifiPassword,
+        gmapsReviewUrl: v.gmapsReviewUrl,
+        instagramUrl: v.instagramUrl,
+      }}
+      table={{ id: table.id, number: table.number, label: table.label }}
+      activeOrder={
+        activeOrder
+          ? {
+              id: activeOrder.id,
+              orderNumber: activeOrder.orderNumber,
+              status: activeOrder.status,
+              isPaid: activeOrder.isPaid,
+              totalAmount: activeOrder.totalAmount,
+              items: activeOrder.items,
+              queueAhead,
+            }
+          : null
+      }
+    />
+  );
 }

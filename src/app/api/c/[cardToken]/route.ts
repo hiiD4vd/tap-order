@@ -39,13 +39,13 @@ export async function GET(
         { status: 404 }
       );
     }
-
-    // Get any active pending/preparing/served orders for this table
+    // Order aktif meja ini. Filter berdasarkan STATUS saja — jangan pakai
+    // `isPaid: false`. Dengan alur bayar-di-depan, order yang sudah lunas
+    // masih perlu dilacak tamu sampai makanan selesai.
     const activeOrder = await db.order.findFirst({
       where: {
         tableId: table.id,
-        status: { in: ['pending', 'preparing', 'served'] },
-        isPaid: false,
+        status: { in: ['awaiting_payment', 'pending', 'preparing', 'served'] },
       },
       include: {
         items: true,

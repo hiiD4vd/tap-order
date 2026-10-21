@@ -22,6 +22,11 @@ export async function GET(
         taxRate: true,
         serviceRate: true,
         qrisImageUrl: true,
+        wifiSsid: true,
+        wifiPassword: true,
+        gmapsReviewUrl: true,
+        instagramUrl: true,
+        announcement: true,
         isOpen: true,
         categories: {
           where: { isActive: true },

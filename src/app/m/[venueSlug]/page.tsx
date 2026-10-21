@@ -65,6 +65,7 @@ type Venue = {
   taxRate?: number;
   serviceRate?: number;
   qrisImageUrl?: string | null;
+  announcement?: string | null;
   isOpen?: boolean;
   categories: Category[];
 };
@@ -428,24 +429,14 @@ export default function CustomerMenuPage() {
             </div>
           </div>
 
-          <div className="flex items-center gap-1.5">
-            <button
-              onClick={() => handleTableRequest('waiter')}
-              title="Panggil Pelayan"
-              className="p-2 text-slate-600 hover:text-emerald-700 hover:bg-emerald-50 active:scale-95 rounded-xl border border-slate-200 transition-all flex items-center gap-1 text-xs font-medium"
-            >
-              <Bell className="w-4 h-4 text-emerald-600" />
-              <span className="hidden sm:inline">Pelayan</span>
-            </button>
-            <button
-              onClick={() => handleTableRequest('bill')}
-              title="Minta Tagihan / Bill"
-              className="p-2 text-slate-600 hover:text-amber-700 hover:bg-amber-50 active:scale-95 rounded-xl border border-slate-200 transition-all flex items-center gap-1 text-xs font-medium"
-            >
-              <Receipt className="w-4 h-4 text-amber-600" />
-              <span className="hidden sm:inline">Bill</span>
-            </button>
-          </div>
+          <button
+            onClick={() => handleTableRequest('waiter')}
+            title="Panggil Pelayan"
+            className="p-2 text-slate-600 hover:text-emerald-700 hover:bg-emerald-50 active:scale-95 rounded-xl border border-slate-200 transition-all flex items-center gap-1 text-xs font-medium"
+          >
+            <Bell className="w-4 h-4 text-emerald-600" />
+            <span className="hidden sm:inline">Pelayan</span>
+          </button>
         </div>
 
         {/* Search Bar */}
@@ -490,6 +481,31 @@ export default function CustomerMenuPage() {
 
       {/* Main Menu Feed */}
       <main className="max-w-md mx-auto px-4 mt-4 space-y-6">
+        {/* Promo sengaja di katalog, bukan hub: tampil saat tamu siap memilih. */}
+        {venue.announcement && (
+          <div className="rounded-2xl bg-amber-50 border border-amber-200 p-4">
+            <p className="text-[10px] font-black uppercase tracking-wider text-amber-700">Promo Hari Ini</p>
+            <p className="mt-1 text-sm font-bold text-amber-950">{venue.announcement}</p>
+          </div>
+        )}
+
+        {/* Menu favorit muncul paling awal hanya saat tidak mencari/kategori spesifik. */}
+        {activeCategory === 'all' && !searchQuery && venue.categories.flatMap((c) => c.menuItems).some((i) => i.isPopular && i.isAvailable) && (
+          <section className="space-y-3">
+            <h2 className="text-sm font-bold text-slate-700 uppercase tracking-wider flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-amber-500" /> Paling Dicari
+            </h2>
+            <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
+              {venue.categories.flatMap((c) => c.menuItems).filter((i) => i.isPopular && i.isAvailable).slice(0, 5).map((item) => (
+                <button key={item.id} onClick={() => handleOpenItemModal(item)} className="shrink-0 text-left w-40 bg-white rounded-2xl border border-slate-200 p-3 active:bg-slate-50">
+                  <p className="text-xs font-bold text-slate-900 line-clamp-2">{item.name}</p>
+                  <p className="text-xs font-extrabold text-emerald-700 mt-2">{formatRupiah(item.price)}</p>
+                </button>
+              ))}
+            </div>
+          </section>
+        )}
+
         {filteredCategories.length === 0 ? (
           <div className="bg-white rounded-2xl p-8 text-center border border-slate-200">
             <Utensils className="w-10 h-10 text-slate-300 mx-auto mb-2" />

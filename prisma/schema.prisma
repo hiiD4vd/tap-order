@@ -25,6 +25,14 @@ model Venue {
   serviceRate      Int          @default(0) // Service charge percentage e.g. 5
   qrisImageUrl     String?      // QRIS image or string
   isOpen           Boolean      @default(true) // Store open status
+
+  // --- Table hub (halaman yang dibuka kartu NFC) ---
+  wifiSsid         String? // Ditampilkan + tombol copy; browser tidak bisa auto-connect.
+  wifiPassword     String?
+  gmapsReviewUrl   String? // Link ulasan Google. Tidak ada penyaringan skor (kebijakan Google).
+  instagramUrl     String?
+  announcement     String? // Promo hari ini; tampil di katalog, bukan di hub.
+
   createdAt        DateTime     @default(now())
   updatedAt        DateTime     @updatedAt
 
@@ -35,8 +43,43 @@ model Venue {
   orderCounters    OrderNumberCounter[]
   requests         TableRequest[]
   auditLogs        AuditLog[]
+  feedbacks        Feedback[]
+  taps             TableTap[]
 
   @@map("venues")
+}
+
+/// Kritik & saran dari tamu. Murni anonim: tidak ada kolom kontak, tidak ada
+/// relasi ke order, dan tableId sengaja opsional agar staf tidak bisa
+/// menebak siapa penulisnya dari nomor meja yang sedang terisi.
+model Feedback {
+  id        String   @id @default(cuid())
+  venueId   String
+  rating    Int? // 1-5, opsional
+  message   String
+  createdAt DateTime @default(now())
+
+  venue     Venue    @relation(fields: [venueId], references: [id], onDelete: Cascade)
+
+  @@index([venueId, createdAt])
+  @@map("feedbacks")
+}
+
+/// Log tap kartu NFC/QR. Dipakai owner untuk melihat jam sibuk per meja dan
+/// mendeteksi chip rusak (meja yang tidak pernah di-tap padahal sekitarnya ramai).
+/// Tidak pernah ditampilkan ke tamu.
+model TableTap {
+  id        String   @id @default(cuid())
+  venueId   String
+  tableId   String
+  createdAt DateTime @default(now())
+
+  venue     Venue    @relation(fields: [venueId], references: [id], onDelete: Cascade)
+  table     Table    @relation(fields: [tableId], references: [id], onDelete: Cascade)
+
+  @@index([venueId, createdAt])
+  @@index([tableId, createdAt])
+  @@map("table_taps")
 }
 
 /// Rekor rate limit bersama untuk semua instance aplikasi. Tanpa tabel ini
@@ -55,7 +98,7 @@ model Table {
   venueId     String
   number      String         // e.g. "01", "02", "VIP 1"
   label       String?        // e.g. "Lantai 1", "Outdoor"
-  cardToken   String         @unique // 8-char unique token for NFC/QR: e.g. "A7X92K"
+  cardToken   String         @unique // Token acak 20 char (CSPRNG) yang di-burn ke chip NFC/QR
   status      String         @default("empty") // "empty", "active", "bill_requested"
   isActive    Boolean        @default(true)
   deletedAt   DateTime? // soft delete: meja diarsip, bukan dihapus
@@ -66,6 +109,7 @@ model Table {
   venue       Venue          @relation(fields: [venueId], references: [id], onDelete: Cascade)
   orders      Order[]
   requests    TableRequest[]
+  taps        TableTap[]
 
   @@unique([venueId, number])
   @@index([cardToken])

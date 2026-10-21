@@ -11,7 +11,8 @@ export async function PATCH(
     const { venueSlug } = await params;
     const session = await requireAuth('owner');
     const body = await parseBody(request, settingsSchema);
-    const { name, whatsapp, phone, address, logoUrl, currency, pinCashier, taxRate, serviceRate, qrisImageUrl, isOpen } = body;
+    const { name, whatsapp, phone, address, logoUrl, currency, pinCashier, taxRate, serviceRate, qrisImageUrl, isOpen,
+      wifiSsid, wifiPassword, gmapsReviewUrl, instagramUrl, announcement } = body;
 
     const venue = await db.venue.findUnique({ where: { slug: venueSlug, id: session.venueId } });
     if (!venue) {
@@ -29,6 +30,12 @@ export async function PATCH(
     if (typeof taxRate !== 'undefined') updateData.taxRate = taxRate;
     if (typeof serviceRate !== 'undefined') updateData.serviceRate = serviceRate;
     if (typeof qrisImageUrl !== 'undefined') updateData.qrisImageUrl = qrisImageUrl?.trim() || null;
+    // Table hub: string kosong berarti owner mengosongkan field, jadi simpan null.
+    if (typeof wifiSsid !== 'undefined') updateData.wifiSsid = wifiSsid?.trim() || null;
+    if (typeof wifiPassword !== 'undefined') updateData.wifiPassword = wifiPassword?.trim() || null;
+    if (typeof gmapsReviewUrl !== 'undefined') updateData.gmapsReviewUrl = gmapsReviewUrl?.trim() || null;
+    if (typeof instagramUrl !== 'undefined') updateData.instagramUrl = instagramUrl?.trim() || null;
+    if (typeof announcement !== 'undefined') updateData.announcement = announcement?.trim() || null;
     if (typeof isOpen === 'boolean') updateData.isOpen = isOpen;
 
     const updated = await db.venue.update({
@@ -46,7 +53,8 @@ export async function PATCH(
 
     const safeVenue = await db.venue.findUnique({
       where: { id: updated.id },
-      select: { id: true, slug: true, name: true, phone: true, whatsapp: true, address: true, logoUrl: true, currency: true, taxRate: true, serviceRate: true, qrisImageUrl: true, isOpen: true },
+      select: { id: true, slug: true, name: true, phone: true, whatsapp: true, address: true, logoUrl: true, currency: true, taxRate: true, serviceRate: true, qrisImageUrl: true, isOpen: true,
+        wifiSsid: true, wifiPassword: true, gmapsReviewUrl: true, instagramUrl: true, announcement: true },
     });
 
     return NextResponse.json({

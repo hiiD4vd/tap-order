@@ -87,8 +87,17 @@ export const createRequestSchema = z.object({
   tableId: cuidLike,
   // Table capability from NFC URL; blocks forged waiter/bill requests.
   cardToken: z.string().trim().min(1).max(128),
-  type: z.enum(['waiter', 'bill']).optional(),
+  // `bill` dipertahankan untuk outlet yang masih bayar di akhir.
+  type: z.enum(['waiter', 'bill', 'tissue', 'water', 'condiment', 'clean']).optional(),
 }).passthrough();
+
+// ---------- /api/feedback (tamu, anonim) ----------
+export const createFeedbackSchema = z.object({
+  venueId: cuidLike,
+  cardToken: z.string().trim().min(1).max(128),
+  rating: z.coerce.number().int().min(1).max(5).optional(),
+  message: z.string().trim().min(3).max(1000),
+}).strict();
 
 export const resolveRequestSchema = z.object({
   requestId: cuidLike,
@@ -157,6 +166,12 @@ export const settingsSchema = z.object({
   address: z.string().trim().max(300).optional(),
   logoUrl: z.string().trim().url().max(500).optional().or(z.literal('')),
   qrisImageUrl: z.string().trim().url().max(500).optional().or(z.literal('')),
+  // --- Table hub ---
+  wifiSsid: z.string().trim().max(64).optional().or(z.literal('')),
+  wifiPassword: z.string().trim().max(64).optional().or(z.literal('')),
+  gmapsReviewUrl: z.string().trim().url().max(500).optional().or(z.literal('')),
+  instagramUrl: z.string().trim().url().max(500).optional().or(z.literal('')),
+  announcement: z.string().trim().max(200).optional().or(z.literal('')),
   currency: z.enum(['IDR', 'USD', 'PHP', 'VND', 'THB']).optional(),
   taxRate: z.coerce.number().min(0).max(100).optional(),
   serviceRate: z.coerce.number().min(0).max(100).optional(),

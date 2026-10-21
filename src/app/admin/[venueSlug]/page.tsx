@@ -30,8 +30,18 @@ import {
   MapPin,
   Lock,
   LogOut,
+  BarChart3,
 } from 'lucide-react';
 import { formatRupiah } from '@/lib/utils';
+
+function Metric({ label, value, danger = false }: { label: string; value: string | number; danger?: boolean }) {
+  return (
+    <div className="bg-white border border-slate-200 rounded-2xl p-4">
+      <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">{label}</p>
+      <p className={`text-2xl font-black mt-1 ${danger ? 'text-rose-600' : 'text-slate-900'}`}>{value}</p>
+    </div>
+  );
+}
 
 export default function OwnerDashboardPage() {
   const params = useParams();
@@ -49,8 +59,11 @@ export default function OwnerDashboardPage() {
   } | null>(null);
   const [tables, setTables] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'overview' | 'menu' | 'tables' | 'audit' | 'settings'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'menu' | 'tables' | 'audit' | 'analytics' | 'settings'>('overview');
   const [auditLogs, setAuditLogs] = useState<any[]>([]);
+  const [tapAnalytics, setTapAnalytics] = useState<any | null>(null);
+  const [feedbacks, setFeedbacks] = useState<any[]>([]);
+  const [analyticsLoading, setAnalyticsLoading] = useState(false);
   const [auditLoading, setAuditLoading] = useState(false);
 
   // Outlet Settings state
@@ -61,6 +74,11 @@ export default function OwnerDashboardPage() {
   const [settingsTaxRate, setSettingsTaxRate] = useState('0');
   const [settingsServiceRate, setSettingsServiceRate] = useState('0');
   const [settingsQrisUrl, setSettingsQrisUrl] = useState('');
+  const [settingsWifiSsid, setSettingsWifiSsid] = useState('');
+  const [settingsWifiPassword, setSettingsWifiPassword] = useState('');
+  const [settingsGmapsReviewUrl, setSettingsGmapsReviewUrl] = useState('');
+  const [settingsInstagramUrl, setSettingsInstagramUrl] = useState('');
+  const [settingsAnnouncement, setSettingsAnnouncement] = useState('');
   const [settingsIsOpen, setSettingsIsOpen] = useState(true);
   const [isSavingSettings, setIsSavingSettings] = useState(false);
 
@@ -114,6 +132,11 @@ export default function OwnerDashboardPage() {
         setSettingsTaxRate((menuData.venue.taxRate ?? 0).toString());
         setSettingsServiceRate((menuData.venue.serviceRate ?? 0).toString());
         setSettingsQrisUrl(menuData.venue.qrisImageUrl || '');
+        setSettingsWifiSsid(menuData.venue.wifiSsid || '');
+        setSettingsWifiPassword(menuData.venue.wifiPassword || '');
+        setSettingsGmapsReviewUrl(menuData.venue.gmapsReviewUrl || '');
+        setSettingsInstagramUrl(menuData.venue.instagramUrl || '');
+        setSettingsAnnouncement(menuData.venue.announcement || '');
         setSettingsIsOpen(menuData.venue.isOpen !== false);
         if (menuData.venue.categories.length > 0 && !newMenuCategoryId) {
           setNewMenuCategoryId(menuData.venue.categories[0].id);
@@ -141,6 +164,22 @@ export default function OwnerDashboardPage() {
   useEffect(() => {
     fetchDashboardData(true);
   }, [venueSlug]);
+
+  const loadHubAnalytics = async () => {
+    setAnalyticsLoading(true);
+    try {
+      const [analyticsRes, feedbackRes] = await Promise.all([
+        fetch(`/api/venues/${venueSlug}/tap-analytics?days=7`),
+        fetch('/api/feedback?take=50'),
+      ]);
+      const analyticsData = await analyticsRes.json();
+      const feedbackData = await feedbackRes.json();
+      if (analyticsData.success) setTapAnalytics(analyticsData);
+      if (feedbackData.success) setFeedbacks(feedbackData.feedbacks);
+    } finally {
+      setAnalyticsLoading(false);
+    }
+  };
 
   // 1-Click Out-of-Stock Toggle
   const handleToggleAvailable = async (itemId: string, currentStatus: boolean) => {
@@ -320,6 +359,11 @@ export default function OwnerDashboardPage() {
           taxRate: parseInt(settingsTaxRate) || 0,
           serviceRate: parseInt(settingsServiceRate) || 0,
           qrisImageUrl: settingsQrisUrl,
+          wifiSsid: settingsWifiSsid,
+          wifiPassword: settingsWifiPassword,
+          gmapsReviewUrl: settingsGmapsReviewUrl,
+          instagramUrl: settingsInstagramUrl,
+          announcement: settingsAnnouncement,
           isOpen: settingsIsOpen,
         }),
       });
@@ -509,6 +553,17 @@ export default function OwnerDashboardPage() {
               }`}
             >
               Riwayat Aksi
+            </button>
+            <button
+              onClick={() => { setActiveTab('analytics'); loadHubAnalytics(); }}
+              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
+                activeTab === 'analytics'
+                  ? 'bg-slate-900 text-white shadow-xs'
+                  : 'text-slate-600 hover:bg-slate-200/60'
+              }`}
+            >
+              <BarChart3 className="w-3.5 h-3.5" />
+              <span>Hub & Masukan</span>
             </button>
             <button
               onClick={() => setActiveTab('settings')}
@@ -956,6 +1011,45 @@ export default function OwnerDashboardPage() {
           </div>
         )}
 
+        {/* Hub analytics owner-only; kasir tidak melihat data ini. */}
+        {activeTab === 'analytics' && (
+          <div className="space-y-5 max-w-4xl">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-base font-extrabold text-slate-900">Hub NFC & Masukan Tamu</h2>
+                <p className="text-xs text-slate-500 mt-0.5">7 hari terakhir. Deteksi kartu rusak adalah indikasi, bukan kepastian.</p>
+              </div>
+              <button onClick={loadHubAnalytics} disabled={analyticsLoading} className="px-3 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-700 disabled:opacity-50">
+                {analyticsLoading ? 'Memuat...' : 'Muat Ulang'}
+              </button>
+            </div>
+            {tapAnalytics && (
+              <>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <Metric label="Total tap" value={tapAnalytics.totalTaps} />
+                  <Metric label="Rata-rata tap / meja aktif" value={tapAnalytics.avgTapsPerActiveTable} />
+                  <Metric label="Kartu perlu dicek" value={tapAnalytics.brokenCardAlerts.length} danger={tapAnalytics.brokenCardAlerts.length > 0} />
+                </div>
+                <div className="bg-white border border-slate-200 rounded-2xl p-5">
+                  <h3 className="text-sm font-bold text-slate-900 mb-3">Aktivitas per Meja</h3>
+                  <div className="space-y-2">
+                    {tapAnalytics.tables.map((t: any) => (
+                      <div key={t.tableId} className="flex items-center justify-between text-xs py-2 border-b border-slate-100 last:border-0">
+                        <span className="font-bold text-slate-800">Meja {t.number} {t.label ? `· ${t.label}` : ''}</span>
+                        <span className={t.suspectedBroken ? 'font-bold text-rose-600' : 'text-slate-600'}>{t.suspectedBroken ? 'Cek kartu NFC' : `${t.taps} tap`}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </>
+            )}
+            <div className="bg-white border border-slate-200 rounded-2xl p-5">
+              <h3 className="text-sm font-bold text-slate-900 mb-3">Kritik & Saran Anonim</h3>
+              {feedbacks.length === 0 ? <p className="text-xs text-slate-500">Belum ada masukan.</p> : <div className="space-y-3">{feedbacks.map((f) => <div key={f.id} className="border-b border-slate-100 last:border-0 pb-3 last:pb-0"><div className="flex justify-between text-xs"><span className="font-bold text-amber-600">{f.rating ? `${f.rating}/5` : 'Tanpa rating'}</span><span className="text-slate-400">{new Date(f.createdAt).toLocaleString('id-ID')}</span></div><p className="text-sm text-slate-700 mt-1">{f.message}</p></div>)}</div>}
+            </div>
+          </div>
+        )}
+
         {/* Tab 4: Outlet & PIN Settings */}
         {activeTab === 'settings' && (
           <div className="max-w-2xl bg-white rounded-3xl border border-slate-200 p-7 shadow-xs space-y-6">
@@ -1115,6 +1209,38 @@ export default function OwnerDashboardPage() {
                     <img src={settingsQrisUrl} alt="Preview QRIS" className="w-24 h-24 object-contain rounded-lg" />
                   </div>
                 )}
+              </div>
+
+              {/* Table hub — halaman yang dibuka setelah tap NFC/QR. */}
+              <div className="pt-4 border-t border-slate-100 space-y-4">
+                <div>
+                  <h3 className="font-extrabold text-slate-900">Hub Kartu NFC</h3>
+                  <p className="text-[11px] text-slate-400 mt-0.5">Pesan, WiFi, ulasan Google, kritik anonim, dan promo katalog.</p>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="font-bold text-slate-700 block mb-1">Nama WiFi (SSID)</label>
+                    <input value={settingsWifiSsid} onChange={(e) => setSettingsWifiSsid(e.target.value)} maxLength={64} placeholder="Contoh: Cafe-Guest" className="w-full p-3 rounded-xl border border-slate-200 focus:border-emerald-500 focus:outline-none text-slate-800" />
+                  </div>
+                  <div>
+                    <label className="font-bold text-slate-700 block mb-1">Password WiFi</label>
+                    <input value={settingsWifiPassword} onChange={(e) => setSettingsWifiPassword(e.target.value)} maxLength={64} placeholder="Tampil dengan tombol salin" className="w-full p-3 rounded-xl border border-slate-200 focus:border-emerald-500 focus:outline-none text-slate-800" />
+                  </div>
+                </div>
+                <div>
+                  <label className="font-bold text-slate-700 block mb-1">Link Ulasan Google Maps</label>
+                  <input type="url" value={settingsGmapsReviewUrl} onChange={(e) => setSettingsGmapsReviewUrl(e.target.value)} placeholder="https://g.page/r/.../review" className="w-full p-3 rounded-xl border border-slate-200 focus:border-emerald-500 focus:outline-none text-slate-800" />
+                  <p className="text-[11px] text-slate-400 mt-1">Ditampilkan netral ke semua tamu. Tidak ada review gating.</p>
+                </div>
+                <div>
+                  <label className="font-bold text-slate-700 block mb-1">Link Instagram</label>
+                  <input type="url" value={settingsInstagramUrl} onChange={(e) => setSettingsInstagramUrl(e.target.value)} placeholder="https://instagram.com/namarestomu" className="w-full p-3 rounded-xl border border-slate-200 focus:border-emerald-500 focus:outline-none text-slate-800" />
+                </div>
+                <div>
+                  <label className="font-bold text-slate-700 block mb-1">Promo Hari Ini</label>
+                  <input value={settingsAnnouncement} onChange={(e) => setSettingsAnnouncement(e.target.value)} maxLength={200} placeholder="Contoh: Beli 2 kopi, diskon 20%" className="w-full p-3 rounded-xl border border-slate-200 focus:border-emerald-500 focus:outline-none text-slate-800" />
+                  <p className="text-[11px] text-slate-400 mt-1">Muncul di atas katalog saat tamu siap memilih menu.</p>
+                </div>
               </div>
 
               <div className="pt-3">
