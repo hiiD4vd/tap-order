@@ -74,7 +74,7 @@ export async function POST(
       return NextResponse.json({ error: 'Venue not found' }, { status: 404 });
     }
 
-    const token = `${venue.slug.substring(0, 3).toUpperCase()}${generateToken(6)}`;
+    const token = generateToken(20); // ≈100 bit entropy; aman sebagai capability NFC.
 
     const newTable = await db.table.create({
       data: {
