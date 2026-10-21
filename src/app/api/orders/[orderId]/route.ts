@@ -121,7 +121,7 @@ export async function PATCH(
     }
 
     // Broadcast SSE update
-    sseBroadcaster.broadcast(updatedOrder.venueId, 'ORDER_UPDATED', {
+    await sseBroadcaster.broadcast(updatedOrder.venueId, 'ORDER_UPDATED', {
       order: updatedOrder,
     });
 

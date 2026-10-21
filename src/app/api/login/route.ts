@@ -8,7 +8,7 @@ import { checkRateLimit, getClientKey, rateLimitResponse } from '@/lib/rate-limi
 
 export async function POST(request: Request) {
   try {
-    const loginLimit = checkRateLimit(getClientKey(request, 'login'), 5, 15 * 60 * 1000);
+    const loginLimit = await checkRateLimit(getClientKey(request, 'login'), 5, 15 * 60 * 1000);
     if (!loginLimit.allowed) return rateLimitResponse(loginLimit.retryAfter);
 
     const body = await parseBody(request, loginSchema);
