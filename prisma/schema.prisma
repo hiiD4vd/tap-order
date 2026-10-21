@@ -39,6 +39,17 @@ model Venue {
   @@map("venues")
 }
 
+/// Rekor rate limit bersama untuk semua instance aplikasi. Tanpa tabel ini
+/// batas request hanya berlaku per-proses, jadi redeploy/scale menghapus batas.
+model RateLimitBucket {
+  key     String   @id
+  count   Int      @default(0)
+  resetAt DateTime
+
+  @@index([resetAt])
+  @@map("rate_limit_buckets")
+}
+
 model Table {
   id          String         @id @default(cuid())
   venueId     String
@@ -47,6 +58,8 @@ model Table {
   cardToken   String         @unique // 8-char unique token for NFC/QR: e.g. "A7X92K"
   status      String         @default("empty") // "empty", "active", "bill_requested"
   isActive    Boolean        @default(true)
+  deletedAt   DateTime? // soft delete: meja diarsip, bukan dihapus
+  cardTokenRotatedAt DateTime? // terakhir token NFC diganti (kartu hilang)
   createdAt   DateTime       @default(now())
   updatedAt   DateTime       @updatedAt
 
@@ -56,6 +69,7 @@ model Table {
 
   @@unique([venueId, number])
   @@index([cardToken])
+  @@index([venueId, deletedAt])
   @@map("tables")
 }
 
@@ -85,6 +99,7 @@ model MenuItem {
   isAvailable  Boolean       @default(true) // Toggle 1-klik kasir
   isPopular    Boolean       @default(false)
   sort         Int           @default(0)
+  deletedAt    DateTime? // soft delete: menu diarsip, bukan dihapus
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
 
@@ -94,6 +109,7 @@ model MenuItem {
   orderItems   OrderItem[]
 
   @@index([venueId, categoryId])
+  @@index([venueId, deletedAt])
   @@map("menu_items")
 }
 
