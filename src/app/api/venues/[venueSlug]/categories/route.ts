@@ -55,8 +55,21 @@ export async function DELETE(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
 
-    await db.category.delete({ where: { id: categoryId } });
-    return NextResponse.json({ success: true, message: 'Kategori berhasil dihapus' });
+    // Jangan hard-delete. Relasi Category -> MenuItem pakai cascade; satu klik
+    // sebelumnya bisa menghapus semua menu aktif berikut pilihan opsinya.
+    // Arsipkan kategori agar menu & riwayat tetap utuh dan hilang dari katalog tamu.
+    await db.category.update({
+      where: { id: categoryId },
+      data: { isActive: false },
+    });
+    await db.auditLog.create({
+      data: {
+        venueId: session.venueId,
+        action: 'ARCHIVE_CATEGORY',
+        details: JSON.stringify({ categoryId, name: category.name }),
+      },
+    });
+    return NextResponse.json({ success: true, message: 'Kategori diarsipkan; menu dan riwayat tetap aman' });
   } catch (error) {
     return handleApiError(error);
   }

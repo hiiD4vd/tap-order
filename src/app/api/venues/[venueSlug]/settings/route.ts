@@ -11,7 +11,7 @@ export async function PATCH(
     const { venueSlug } = await params;
     const session = await requireAuth('owner');
     const body = await parseBody(request, settingsSchema);
-    const { name, whatsapp, phone, address, pinCashier, taxRate, serviceRate, qrisImageUrl, isOpen } = body;
+    const { name, whatsapp, phone, address, logoUrl, currency, pinCashier, taxRate, serviceRate, qrisImageUrl, isOpen } = body;
 
     const venue = await db.venue.findUnique({ where: { slug: venueSlug, id: session.venueId } });
     if (!venue) {
@@ -23,6 +23,8 @@ export async function PATCH(
     if (whatsapp) updateData.whatsapp = whatsapp.trim();
     if (phone) updateData.phone = phone.trim();
     if (typeof address === 'string') updateData.address = address.trim();
+    if (typeof logoUrl !== 'undefined') updateData.logoUrl = logoUrl?.trim() || null;
+    if (currency) updateData.currency = currency;
     if (pinCashier) updateData.pinCashier = pinCashier.trim();
     if (typeof taxRate !== 'undefined') updateData.taxRate = taxRate;
     if (typeof serviceRate !== 'undefined') updateData.serviceRate = serviceRate;

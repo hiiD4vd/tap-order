@@ -4,9 +4,15 @@ import { generateToken } from '@/lib/utils';
 import { hashPassword, signSession } from '@/lib/auth';
 import { parseBody, handleApiError } from '@/lib/api-auth';
 import { registerSchema } from '@/lib/validation';
+import { checkRateLimit, getClientKey, rateLimitResponse } from '@/lib/rate-limit';
 
 export async function POST(request: Request) {
   try {
+    // Pendaftaran membuat venue, tabel, kategori, dan session. Batasi supaya
+    // bot tidak bisa memenuhi database dengan trial outlet.
+    const registrationLimit = await checkRateLimit(getClientKey(request, 'register'), 3, 60 * 60 * 1000);
+    if (!registrationLimit.allowed) return rateLimitResponse(registrationLimit.retryAfter);
+
     const body = await parseBody(request, registerSchema);
     const {
       name,
