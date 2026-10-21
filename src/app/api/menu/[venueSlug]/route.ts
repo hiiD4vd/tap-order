@@ -28,6 +28,8 @@ export async function GET(
           orderBy: { sort: 'asc' },
           include: {
             menuItems: {
+              // Menu terarsip (soft delete) tidak boleh muncul di katalog tamu.
+              where: { deletedAt: null },
               orderBy: { sort: 'asc' },
               include: {
                 optionGroups: {

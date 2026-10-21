@@ -3,6 +3,15 @@ import { db } from '@/lib/db';
 import { parseBody, handleApiError } from '@/lib/api-auth';
 import { createMenuItemSchema, updateMenuItemSchema, deleteMenuItemQuerySchema } from '@/lib/validation';
 
+/**
+ * Soft delete: hapus menu mengisi `deletedAt`, bukan DELETE.
+ *
+ * Alasan: audit log menunjuk id menu, laporan penjualan lama menyimpan
+ * snapshot item, dan kasir sering salah tekan. Arsip bisa dipulihkan lewat
+ * ?restore=<itemId>; menu terarsip tidak muncul di katalog tamu.
+ */
+const notDeleted = { deletedAt: null };
+
 export async function POST(
   request: Request,
   { params }: { params: Promise<{ venueSlug: string }> }
@@ -79,12 +88,38 @@ export async function PATCH(
     const { requireAuth } = await import('@/lib/api-auth');
     const session = await requireAuth('owner');
     
+    const { searchParams } = new URL(request.url);
+    const restoreId = searchParams.get('restore');
+
+    // Pulihkan menu yang terarsip. Dilakukan sebelum parseBody karena
+    // payload-nya kosong.
+    if (restoreId) {
+      const archived = await db.menuItem.findFirst({
+        where: { id: restoreId, venueId: session.venueId, deletedAt: { not: null } },
+      });
+      if (!archived) {
+        return NextResponse.json({ error: 'Menu terarsip tidak ditemukan' }, { status: 404 });
+      }
+      const restored = await db.menuItem.update({
+        where: { id: restoreId },
+        data: { deletedAt: null },
+      });
+      await db.auditLog.create({
+        data: {
+          venueId: session.venueId,
+          action: 'RESTORE_MENU_ITEM',
+          details: JSON.stringify({ menuItemId: restoreId, name: restored.name }),
+        },
+      });
+      return NextResponse.json({ success: true, item: restored });
+    }
+
     const body = await parseBody(request, updateMenuItemSchema);
     const { itemId, isAvailable, price, name, description } = body;
 
-    // Verify item belongs to session venue
-    const item = await db.menuItem.findUnique({ where: { id: itemId } });
-    if (!item || item.venueId !== session.venueId) {
+    // Verify item belongs to session venue and is not archived
+    const item = await db.menuItem.findFirst({ where: { id: itemId, venueId: session.venueId, ...notDeleted } });
+    if (!item) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
 
@@ -113,6 +148,28 @@ export async function PATCH(
   }
 }
 
+/** Daftar menu terarsip, untuk halaman pemulihan. */
+export async function GET(
+  request: Request,
+  { params }: { params: Promise<{ venueSlug: string }> }
+) {
+  try {
+    const { requireAuth } = await import('@/lib/api-auth');
+    const session = await requireAuth('owner');
+    void (await params);
+
+    const archived = await db.menuItem.findMany({
+      where: { venueId: session.venueId, deletedAt: { not: null } },
+      orderBy: { deletedAt: 'desc' },
+      take: 100,
+    });
+
+    return NextResponse.json({ success: true, items: archived });
+  } catch (error) {
+    return handleApiError(error);
+  }
+}
+
 export async function DELETE(
   request: Request,
   { params }: { params: Promise<{ venueSlug: string }> }
@@ -128,21 +185,25 @@ export async function DELETE(
     }
     const { itemId } = parsedQuery.data;
 
-    // Verify item belongs to session venue
-    const item = await db.menuItem.findUnique({ where: { id: itemId } });
-    if (!item || item.venueId !== session.venueId) {
+    // Verify item belongs to session venue and is still active
+    const item = await db.menuItem.findFirst({ where: { id: itemId, venueId: session.venueId, ...notDeleted } });
+    if (!item) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
 
-    await db.menuItem.delete({ where: { id: itemId } });
+    // Arsipkan, jangan hapus: riwayat order dan audit log masih menunjuk id ini.
+    await db.menuItem.update({
+      where: { id: itemId },
+      data: { deletedAt: new Date(), isAvailable: false },
+    });
     await db.auditLog.create({
       data: {
         venueId: session.venueId,
         action: 'DELETE_MENU_ITEM',
-        details: JSON.stringify({ menuItemId: itemId }),
+        details: JSON.stringify({ menuItemId: itemId, name: item.name, softDelete: true }),
       },
     });
-    return NextResponse.json({ success: true, message: 'Menu berhasil dihapus' });
+    return NextResponse.json({ success: true, message: 'Menu diarsipkan dan bisa dipulihkan' });
   } catch (error) {
     return handleApiError(error);
   }
