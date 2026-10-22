@@ -12,6 +12,13 @@ export const shortText = (max = 200) => z.string().trim().min(1).max(max);
 
 export const nonNegInt = z.coerce.number().int().min(0).max(100_000_000);
 
+// Hanya http/https. Zod .url() menerima javascript:/data: — field ini dirender
+// langsung sebagai href/src di halaman tamu, jadi skema berbahaya jadi stored XSS.
+export const httpUrl = (max = 500) =>
+  z.string().trim().max(max).refine((v) => /^https?:\/\//i.test(v), {
+    message: 'URL harus diawali http:// atau https://',
+  }).optional().or(z.literal(''));
+
 // ---------- /api/login ----------
 export const loginSchema = z.object({
   identifier: z.string().trim().min(1).max(120).optional(),
@@ -141,7 +148,7 @@ export const createMenuItemSchema = z.object({
   name: shortText(120),
   description: z.string().trim().max(500).optional(),
   price: nonNegInt,
-  imageUrl: z.string().trim().url().max(500).optional().or(z.literal('')),
+  imageUrl: httpUrl(),
   optionGroups: z.array(optionGroupSchema).max(15).optional(),
 }).passthrough();
 
@@ -163,13 +170,13 @@ export const settingsSchema = z.object({
   phone: z.string().trim().max(30).optional(),
   whatsapp: z.string().trim().max(30).optional(),
   address: z.string().trim().max(300).optional(),
-  logoUrl: z.string().trim().url().max(500).optional().or(z.literal('')),
-  qrisImageUrl: z.string().trim().url().max(500).optional().or(z.literal('')),
+  logoUrl: httpUrl(),
+  qrisImageUrl: httpUrl(),
   // --- Table hub ---
   wifiSsid: z.string().trim().max(64).optional().or(z.literal('')),
   wifiPassword: z.string().trim().max(64).optional().or(z.literal('')),
-  gmapsReviewUrl: z.string().trim().url().max(500).optional().or(z.literal('')),
-  instagramUrl: z.string().trim().url().max(500).optional().or(z.literal('')),
+  gmapsReviewUrl: httpUrl(),
+  instagramUrl: httpUrl(),
   announcement: z.string().trim().max(200).optional().or(z.literal('')),
   currency: z.enum(['IDR', 'USD', 'PHP', 'VND', 'THB']).optional(),
   taxRate: z.coerce.number().min(0).max(100).optional(),

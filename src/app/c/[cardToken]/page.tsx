@@ -1,8 +1,10 @@
 import { redirect } from 'next/navigation';
+import { headers } from 'next/headers';
 import { db } from '@/lib/db';
 import Link from 'next/link';
 import { Smartphone } from 'lucide-react';
 import TableHub from './TableHub';
+import { checkRateLimit } from '@/lib/rate-limit';
 
 /**
  * Halaman yang dibuka kartu NFC/QR meja.
@@ -19,6 +21,22 @@ export default async function TableEntryPage({
   params: Promise<{ cardToken: string }>;
 }) {
   const { cardToken } = await params;
+
+  // Brute-force guard: token lama (6-9 char) punya entropi rendah; tanpa
+  // limit, endpoint ini bisa di-scan ribuan percobaan/detik.
+  const hdrs = await headers();
+  const ip = hdrs.get('x-forwarded-for')?.split(',')[0]?.trim() || hdrs.get('x-real-ip')?.trim() || 'unknown';
+  const limit = await checkRateLimit(`card-page:${ip}`, 30, 60 * 1000);
+  if (!limit.allowed) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
+        <div className="bg-white rounded-2xl shadow-xl border border-slate-100 p-8 max-w-md w-full text-center">
+          <h1 className="text-xl font-bold text-slate-800 mb-2">Terlalu Banyak Percobaan</h1>
+          <p className="text-slate-600 text-sm">Silakan coba lagi dalam satu menit.</p>
+        </div>
+      </div>
+    );
+  }
 
   const table = await db.table.findUnique({
     where: { cardToken },

@@ -1,11 +1,17 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import { checkRateLimit, getClientKey, rateLimitResponse } from '@/lib/rate-limit';
 
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ cardToken: string }> }
 ) {
   try {
+    // Token adalah bearer capability; tanpa limit, token lama (6-9 char,
+    // <=45 bit) bisa di-brute-force langsung lewat endpoint ini.
+    const limit = await checkRateLimit(getClientKey(request, 'card-lookup'), 30, 60 * 1000);
+    if (!limit.allowed) return rateLimitResponse(limit.retryAfter);
+
     const { cardToken } = await params;
 
     if (!cardToken) {

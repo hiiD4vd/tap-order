@@ -1,11 +1,16 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import { checkRateLimit, getClientKey, rateLimitResponse } from '@/lib/rate-limit';
 
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ venueSlug: string }> }
 ) {
   try {
+    // Publik tanpa auth; batasi supaya tidak jadi vektor scraping/DoS murah.
+    const limit = await checkRateLimit(getClientKey(request, 'menu'), 60, 60 * 1000);
+    if (!limit.allowed) return rateLimitResponse(limit.retryAfter);
+
     const { venueSlug } = await params;
 
     const venue = await db.venue.findUnique({
@@ -22,10 +27,9 @@ export async function GET(
         taxRate: true,
         serviceRate: true,
         qrisImageUrl: true,
-        wifiSsid: true,
-        wifiPassword: true,
-        gmapsReviewUrl: true,
-        instagramUrl: true,
+        // wifiSsid/wifiPassword SENGAJA TIDAK diambil di sini: endpoint ini
+        // publik tanpa auth/token kartu. SSID+password hanya lewat
+        // /api/c/[cardToken] yang memverifikasi capability NFC dulu.
         announcement: true,
         isOpen: true,
         categories: {
