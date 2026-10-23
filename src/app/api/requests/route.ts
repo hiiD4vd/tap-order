@@ -70,7 +70,7 @@ export async function POST(request: Request) {
 export async function PATCH(request: Request) {
   try {
     const { requireAuth } = await import('@/lib/api-auth');
-    const session = await requireAuth('cashier'); // cashier or kitchen can resolve
+    const session = await requireAuth('cashier', request); // cashier or kitchen can resolve
     
     const body = await parseBody(request, resolveRequestSchema);
     const { requestId, status = 'resolved' } = body;

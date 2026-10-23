@@ -63,7 +63,7 @@ export async function POST(
 ) {
   try {
     const { requireAuth } = await import('@/lib/api-auth');
-    const session = await requireAuth('owner');
+    const session = await requireAuth('owner', request);
     
     const { venueSlug } = await params;
     const body = await parseBody(request, createTableSchema);
@@ -100,7 +100,7 @@ export async function PATCH(
 ) {
   try {
     const { requireAuth } = await import('@/lib/api-auth');
-    const session = await requireAuth('owner');
+    const session = await requireAuth('owner', request);
     void (await params);
 
     const { searchParams } = new URL(request.url);
@@ -121,7 +121,9 @@ export async function PATCH(
     // Ganti token kartu yang hilang. URL lama langsung mati.
     if (action === 'rotate-token') {
       const oldToken = table.cardToken;
-      const newToken = generateToken(8);
+      // 20 char CSPRNG, sama seperti token registrasi baru. Sebelumnya rotasi
+      // masih menghasilkan token 8-char (~40 bit) — rotasi jadi "upgrade" semu.
+      const newToken = generateToken(20);
 
       const updated = await db.table.update({
         where: { id: tableId },
@@ -171,7 +173,7 @@ export async function DELETE(
 ) {
   try {
     const { requireAuth } = await import('@/lib/api-auth');
-    const session = await requireAuth('owner');
+    const session = await requireAuth('owner', request);
     
     const { searchParams } = new URL(request.url);
     const parsedQuery = deleteTableQuerySchema.safeParse({ tableId: searchParams.get('tableId') });

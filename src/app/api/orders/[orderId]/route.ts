@@ -18,7 +18,7 @@ export async function PATCH(
   { params }: { params: Promise<{ orderId: string }> }
 ) {
   try {
-    const session = await requireAuth();
+    const session = await requireAuth(undefined, request);
     const { orderId } = await params;
     const body = await parseBody(request, updateOrderSchema);
     const { status, isPaid, paymentMethod, cancelledReason, newTableId } = body;

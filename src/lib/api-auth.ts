@@ -1,5 +1,6 @@
 import { cookies } from 'next/headers';
 import { verifySession, type SessionPayload } from './auth';
+import { assertSameOrigin } from './csrf';
 import type { z } from 'zod';
 
 /**
@@ -60,14 +61,22 @@ export async function parseBody<T extends z.ZodType>(
 /**
  * Require authentication for API routes.
  * Throws if no session or role mismatch.
- * 
+ *
  * @param requiredRole - Optional role requirement ('owner' | 'cashier')
+ * @param request - Optional. Kalau disediakan, request mutasi (POST/PATCH/
+ *   DELETE) divalidasi terhadap Origin header sebagai lapisan CSRF kedua
+ *   di atas SameSite=Lax cookie. GET tidak perlu ini (tidak ada side effect).
  * @returns SessionPayload if valid
  * @throws Error with status-appropriate message
  */
 export async function requireAuth(
-  requiredRole?: 'owner' | 'cashier'
+  requiredRole?: 'owner' | 'cashier',
+  request?: Request
 ): Promise<SessionPayload> {
+  if (request && request.method !== 'GET' && request.method !== 'HEAD') {
+    assertSameOrigin(request);
+  }
+
   const cookieStore = await cookies();
   const token = cookieStore.get('tap_session')?.value;
   

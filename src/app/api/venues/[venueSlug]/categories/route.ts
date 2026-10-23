@@ -9,7 +9,7 @@ export async function POST(
 ) {
   try {
     const { requireAuth } = await import('@/lib/api-auth');
-    const session = await requireAuth('owner');
+    const session = await requireAuth('owner', request);
     
     const { venueSlug } = await params;
     const body = await parseBody(request, createCategorySchema);
@@ -40,7 +40,7 @@ export async function DELETE(
 ) {
   try {
     const { requireAuth } = await import('@/lib/api-auth');
-    const session = await requireAuth('owner');
+    const session = await requireAuth('owner', request);
     
     const { searchParams } = new URL(request.url);
     const parsedQuery = deleteCategoryQuerySchema.safeParse({ categoryId: searchParams.get('categoryId') });

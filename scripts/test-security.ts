@@ -2,6 +2,7 @@ import { strict as assert } from 'node:assert';
 import { checkRateLimit } from '../src/lib/rate-limit';
 import { createOrderSchema, createRequestSchema, settingsSchema } from '../src/lib/validation';
 import { isSubscriptionExpired } from '../src/lib/subscription';
+import { assertSameOrigin } from '../src/lib/csrf';
 import { db } from '../src/lib/db';
 
 async function main() {
@@ -31,6 +32,18 @@ async function main() {
   assert.equal(settingsSchema.safeParse({ gmapsReviewUrl: 'data:text/html,<script>' }).success, false);
   assert.equal(settingsSchema.safeParse({ gmapsReviewUrl: 'https://maps.google.com/x' }).success, true);
   assert.equal(settingsSchema.safeParse({ gmapsReviewUrl: '' }).success, true);
+
+  // Regression: CSRF origin guard. Cross-origin mutasi harus 403; request
+  // tanpa Origin (non-browser) atau same-origin tetap lolos.
+  process.env.NEXT_PUBLIC_APP_URL = 'https://taporder.id';
+  const sameOriginReq = new Request('https://taporder.id/api/x', { method: 'POST', headers: { origin: 'https://taporder.id' } });
+  assert.doesNotThrow(() => assertSameOrigin(sameOriginReq));
+
+  const crossOriginReq = new Request('https://taporder.id/api/x', { method: 'POST', headers: { origin: 'https://evil-attacker.com' } });
+  assert.throws(() => assertSameOrigin(crossOriginReq), /Origin tidak diizinkan/);
+
+  const noOriginReq = new Request('https://taporder.id/api/x', { method: 'POST' });
+  assert.doesNotThrow(() => assertSameOrigin(noOriginReq));
 
   // Langganan: tanpa expiresAt = permanen, masa depan = aktif, masa lalu = kedaluwarsa.
   const now = new Date('2026-06-01T00:00:00Z').getTime();
