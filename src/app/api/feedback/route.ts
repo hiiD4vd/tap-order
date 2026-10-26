@@ -46,7 +46,7 @@ export async function POST(request: Request) {
 /** Owner membaca masukan. Tidak ada identitas untuk ditampilkan. */
 export async function GET(request: Request) {
   try {
-    const session = await requireAuth('owner');
+    const session = await requireAuth(request, 'owner');
 
     const url = new URL(request.url);
     const take = Math.min(100, Math.max(1, Number(url.searchParams.get('take')) || 50));

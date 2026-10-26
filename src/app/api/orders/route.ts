@@ -196,7 +196,7 @@ export async function POST(request: Request) {
 export async function GET(request: Request) {
   try {
     const { requireAuth, handleApiError } = await import('@/lib/api-auth');
-    const session = await requireAuth(); // Require cashier/owner login
+    const session = await requireAuth(request); // Require cashier/owner login
     
     const { searchParams } = new URL(request.url);
     const venueSlug = searchParams.get('venueSlug');

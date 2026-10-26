@@ -9,7 +9,7 @@ export async function PATCH(
 ) {
   try {
     const { venueSlug } = await params;
-    const session = await requireAuth('owner', request);
+    const session = await requireAuth(request, 'owner');
     const body = await parseBody(request, settingsSchema);
     const { name, whatsapp, phone, address, logoUrl, currency, pinCashier, taxRate, serviceRate, qrisImageUrl, isOpen,
       wifiSsid, wifiPassword, gmapsReviewUrl, instagramUrl, announcement } = body;

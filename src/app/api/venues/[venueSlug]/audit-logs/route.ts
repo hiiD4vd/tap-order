@@ -14,7 +14,7 @@ export async function GET(
 ) {
   try {
     const { venueSlug } = await params;
-    const session = await requireAuth('owner');
+    const session = await requireAuth(request, 'owner');
 
     const venue = await db.venue.findUnique({
       where: { slug: venueSlug, id: session.venueId },

@@ -35,7 +35,7 @@ async function main() {
 
   // Regression: CSRF guard fail-closed. Same-origin lolos; cross-origin,
   // downgrade http, Origin:null, dan tanpa Origin semuanya ditolak.
-  process.env.NEXT_PUBLIC_APP_URL = 'https://taporder.id';
+  process.env.APP_ORIGIN = 'https://taporder.id';
   const sameOriginReq = new Request('https://taporder.id/api/x', { method: 'POST', headers: { origin: 'https://taporder.id' } });
   assert.doesNotThrow(() => assertSameOrigin(sameOriginReq));
 
@@ -50,6 +50,12 @@ async function main() {
 
   const noOriginReq = new Request('https://taporder.id/api/x', { method: 'POST' });
   assert.throws(() => assertSameOrigin(noOriginReq), /Origin wajib diisi/);
+
+  delete process.env.APP_ORIGIN;
+  assert.throws(() => assertSameOrigin(sameOriginReq), /APP_ORIGIN wajib/);
+  process.env.APP_ORIGIN = 'not-a-url';
+  assert.throws(() => assertSameOrigin(sameOriginReq), /APP_ORIGIN wajib/);
+  process.env.APP_ORIGIN = 'https://taporder.id';
 
   // Langganan: tanpa expiresAt = permanen, masa depan = aktif, masa lalu = kedaluwarsa.
   const now = new Date('2026-06-01T00:00:00Z').getTime();

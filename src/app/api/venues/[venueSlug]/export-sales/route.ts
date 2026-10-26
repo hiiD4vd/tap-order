@@ -7,7 +7,7 @@ export async function GET(
 ) {
   try {
     const { requireAuth } = await import('@/lib/api-auth');
-    const session = await requireAuth('owner');
+    const session = await requireAuth(request, 'owner');
     
     const { venueSlug } = await params;
     const venue = await db.venue.findUnique({ where: { slug: venueSlug, id: session.venueId } });

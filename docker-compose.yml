@@ -29,7 +29,7 @@ services:
       - NODE_ENV=production
       - DATABASE_URL=postgresql://taporder:${POSTGRES_PASSWORD:-taporder_dev_password}@postgres:5432/taporder?schema=public
       - SESSION_SECRET=${SESSION_SECRET:?SESSION_SECRET is required}
-      - NEXT_PUBLIC_APP_URL=https://taporder.id
+      - APP_ORIGIN=https://taporder.id
     depends_on:
       postgres:
         condition: service_healthy

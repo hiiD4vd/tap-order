@@ -22,7 +22,7 @@ export async function GET(
 ) {
   try {
     const { requireAuth } = await import('@/lib/api-auth');
-    const session = await requireAuth('owner'); // Only owner can see cardTokens
+    const session = await requireAuth(request, 'owner'); // Only owner can see cardTokens
     
     const { venueSlug } = await params;
     const { searchParams } = new URL(request.url);
@@ -63,7 +63,7 @@ export async function POST(
 ) {
   try {
     const { requireAuth } = await import('@/lib/api-auth');
-    const session = await requireAuth('owner', request);
+    const session = await requireAuth(request, 'owner');
     
     const { venueSlug } = await params;
     const body = await parseBody(request, createTableSchema);
@@ -100,7 +100,7 @@ export async function PATCH(
 ) {
   try {
     const { requireAuth } = await import('@/lib/api-auth');
-    const session = await requireAuth('owner', request);
+    const session = await requireAuth(request, 'owner');
     void (await params);
 
     const { searchParams } = new URL(request.url);
@@ -120,7 +120,6 @@ export async function PATCH(
 
     // Ganti token kartu yang hilang. URL lama langsung mati.
     if (action === 'rotate-token') {
-      const oldToken = table.cardToken;
       // 20 char CSPRNG, sama seperti token registrasi baru. Sebelumnya rotasi
       // masih menghasilkan token 8-char (~40 bit) — rotasi jadi "upgrade" semu.
       const newToken = generateToken(20);
@@ -134,7 +133,8 @@ export async function PATCH(
         data: {
           venueId: session.venueId,
           action: 'ROTATE_TABLE_TOKEN',
-          details: JSON.stringify({ tableId, number: table.number, oldToken, newToken }),
+          // Capability aktif tidak boleh diduplikasi ke audit log permanen.
+          details: JSON.stringify({ tableId, number: table.number }),
         },
       });
 
@@ -173,7 +173,7 @@ export async function DELETE(
 ) {
   try {
     const { requireAuth } = await import('@/lib/api-auth');
-    const session = await requireAuth('owner', request);
+    const session = await requireAuth(request, 'owner');
     
     const { searchParams } = new URL(request.url);
     const parsedQuery = deleteTableQuerySchema.safeParse({ tableId: searchParams.get('tableId') });

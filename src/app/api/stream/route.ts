@@ -4,7 +4,7 @@ import { sseBroadcaster } from '@/lib/sse';
 export async function GET(request: NextRequest) {
   try {
     const { requireAuth } = await import('@/lib/api-auth');
-    const session = await requireAuth('cashier'); // cashier or kitchen only
+    const session = await requireAuth(request, 'cashier'); // cashier or kitchen only
     
     const { searchParams } = new URL(request.url);
     const venueId = searchParams.get('venueId');

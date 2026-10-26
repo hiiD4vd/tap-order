@@ -62,18 +62,17 @@ export async function parseBody<T extends z.ZodType>(
  * Require authentication for API routes.
  * Throws if no session or role mismatch.
  *
+ * @param request - Wajib. Mutasi divalidasi terhadap APP_ORIGIN; GET/HEAD
+ *   hanya memakai request agar kontrak aman dan konsisten di semua call site.
  * @param requiredRole - Optional role requirement ('owner' | 'cashier')
- * @param request - Wajib diberikan oleh handler mutasi (POST/PATCH/DELETE).
- *   Origin harus sama persis dengan canonical app origin; absen/null ditolak.
- *   Handler GET boleh mengabaikannya karena tidak punya side effect.
  * @returns SessionPayload if valid
  * @throws Error with status-appropriate message
  */
 export async function requireAuth(
-  requiredRole?: 'owner' | 'cashier',
-  request?: Request
+  request: Request,
+  requiredRole?: 'owner' | 'cashier'
 ): Promise<SessionPayload> {
-  if (request && request.method !== 'GET' && request.method !== 'HEAD') {
+  if (request.method !== 'GET' && request.method !== 'HEAD') {
     assertSameOrigin(request);
   }
 

@@ -18,7 +18,7 @@ export async function POST(
 ) {
   try {
     const { requireAuth } = await import('@/lib/api-auth');
-    const session = await requireAuth('owner', request);
+    const session = await requireAuth(request, 'owner');
     
     const { venueSlug } = await params;
     const body = await parseBody(request, createMenuItemSchema);
@@ -86,7 +86,7 @@ export async function PATCH(
 ) {
   try {
     const { requireAuth } = await import('@/lib/api-auth');
-    const session = await requireAuth('owner', request);
+    const session = await requireAuth(request, 'owner');
     
     const { searchParams } = new URL(request.url);
     const restoreId = searchParams.get('restore');
@@ -155,7 +155,7 @@ export async function GET(
 ) {
   try {
     const { requireAuth } = await import('@/lib/api-auth');
-    const session = await requireAuth('owner');
+    const session = await requireAuth(request, 'owner');
     void (await params);
 
     const archived = await db.menuItem.findMany({
@@ -176,7 +176,7 @@ export async function DELETE(
 ) {
   try {
     const { requireAuth } = await import('@/lib/api-auth');
-    const session = await requireAuth('owner', request);
+    const session = await requireAuth(request, 'owner');
     
     const { searchParams } = new URL(request.url);
     const parsedQuery = deleteMenuItemQuerySchema.safeParse({ itemId: searchParams.get('itemId') });

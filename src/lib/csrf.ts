@@ -1,37 +1,25 @@
 /**
  * CSRF guard untuk mutasi yang dilindungi session cookie owner/kasir.
  *
- * Fail closed: browser normal selalu mengirim `Origin` pada fetch mutasi.
- * Header absen atau `Origin: null` tidak boleh dianggap aman — sandboxed
- * iframe, extension, privacy tooling, atau klien non-browser masih bisa
- * membawa cookie/session yang disalin. Klien API terautentikasi harus
- * mengirim Origin aplikasi secara eksplisit.
- *
- * Endpoint publik tamu tidak memakai helper ini karena tidak memakai
- * session cookie; autentikasinya capability `cardToken` di body/URL.
+ * Fail closed: `APP_ORIGIN` wajib berupa canonical server-only origin.
+ * Jangan percaya Host/X-Forwarded-* dari request untuk keputusan keamanan;
+ * header itu hanya aman bila konfigurasi proxy terbukti selalu menimpanya.
  */
 export function assertSameOrigin(request: Request): void {
+  const configured = process.env.APP_ORIGIN;
+  let allowedOrigin: string;
+  try {
+    if (!configured) throw new Error('missing');
+    const parsed = new URL(configured);
+    if (parsed.pathname !== '/' || parsed.search || parsed.hash) throw new Error('not an origin');
+    allowedOrigin = parsed.origin;
+  } catch {
+    throw Object.assign(new Error('APP_ORIGIN wajib berisi canonical origin yang valid'), { status: 500 });
+  }
+
   const origin = request.headers.get('origin');
   if (!origin || origin === 'null') {
     throw Object.assign(new Error('Origin wajib diisi'), { status: 403 });
-  }
-
-  const configured = process.env.NEXT_PUBLIC_APP_URL;
-  const forwardedHost = request.headers.get('x-forwarded-host')?.split(',')[0]?.trim();
-  const host = forwardedHost || request.headers.get('host');
-  const forwardedProto = request.headers.get('x-forwarded-proto')?.split(',')[0]?.trim();
-
-  let allowedOrigin: string;
-  try {
-    if (configured) {
-      allowedOrigin = new URL(configured).origin;
-    } else {
-      if (!host) throw new Error('host missing');
-      const proto = forwardedProto || new URL(request.url).protocol.replace(':', '');
-      allowedOrigin = new URL(`${proto}://${host}`).origin;
-    }
-  } catch {
-    throw Object.assign(new Error('Konfigurasi origin aplikasi tidak valid'), { status: 500 });
   }
 
   let requestOrigin: string;
@@ -41,7 +29,6 @@ export function assertSameOrigin(request: Request): void {
     throw Object.assign(new Error('Origin tidak valid'), { status: 403 });
   }
 
-  // Bandingkan origin penuh, bukan host saja: http dan https tidak setara.
   if (requestOrigin !== allowedOrigin) {
     throw Object.assign(new Error('Origin tidak diizinkan'), { status: 403 });
   }

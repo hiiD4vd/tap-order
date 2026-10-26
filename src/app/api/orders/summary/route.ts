@@ -17,7 +17,7 @@ const PAID = { OR: [{ isPaid: true }, { status: 'completed' }] } as const;
  */
 export async function GET(request: Request) {
   try {
-    const session = await requireAuth();
+    const session = await requireAuth(request);
 
     const { searchParams } = new URL(request.url);
     const from = searchParams.get('from');
