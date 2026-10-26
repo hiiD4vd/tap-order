@@ -1,42 +1,48 @@
 /**
- * CSRF origin guard untuk route mutasi (POST/PATCH/DELETE) yang dilindungi
- * session cookie (owner/kasir). Cookie `tap_session` pakai SameSite=Lax,
- * yang sudah menahan submit form cross-site lintas top-level navigation,
- * tapi TIDAK menahan fetch/XHR dari tab lain yang sama-sama top-level
- * (contoh: iframe same-tab atau navigasi GET diikuti fetch). Origin check
- * ini lapisan kedua yang murah dan tidak mengubah UX sama sekali untuk
- * request normal dari aplikasi sendiri.
+ * CSRF guard untuk mutasi yang dilindungi session cookie owner/kasir.
  *
- * Endpoint publik tamu (orders/requests/feedback/menu) SENGAJA tidak
- * dipasangi guard ini — mereka tidak pakai session cookie, otentikasinya
- * cardToken di body, dan tamu scan dari NFC/QR tanpa Origin header yang
- * konsisten (in-app browser WA/IG kadang strip header ini).
+ * Fail closed: browser normal selalu mengirim `Origin` pada fetch mutasi.
+ * Header absen atau `Origin: null` tidak boleh dianggap aman — sandboxed
+ * iframe, extension, privacy tooling, atau klien non-browser masih bisa
+ * membawa cookie/session yang disalin. Klien API terautentikasi harus
+ * mengirim Origin aplikasi secara eksplisit.
+ *
+ * Endpoint publik tamu tidak memakai helper ini karena tidak memakai
+ * session cookie; autentikasinya capability `cardToken` di body/URL.
  */
 export function assertSameOrigin(request: Request): void {
   const origin = request.headers.get('origin');
-  // Tidak semua klien (curl, beberapa in-app browser) mengirim Origin pada
-  // same-site request. Kalau header absen, request tanpa browser context
-  // (jadi tidak membawa cookie korban) — bukan ancaman CSRF. Lanjutkan.
-  if (!origin) return;
-
-  const host = request.headers.get('host');
-  const configured = process.env.NEXT_PUBLIC_APP_URL;
-
-  let allowedHost: string | null = null;
-  try {
-    allowedHost = configured ? new URL(configured).host : host;
-  } catch {
-    allowedHost = host;
+  if (!origin || origin === 'null') {
+    throw Object.assign(new Error('Origin wajib diisi'), { status: 403 });
   }
 
-  let originHost: string;
+  const configured = process.env.NEXT_PUBLIC_APP_URL;
+  const forwardedHost = request.headers.get('x-forwarded-host')?.split(',')[0]?.trim();
+  const host = forwardedHost || request.headers.get('host');
+  const forwardedProto = request.headers.get('x-forwarded-proto')?.split(',')[0]?.trim();
+
+  let allowedOrigin: string;
   try {
-    originHost = new URL(origin).host;
+    if (configured) {
+      allowedOrigin = new URL(configured).origin;
+    } else {
+      if (!host) throw new Error('host missing');
+      const proto = forwardedProto || new URL(request.url).protocol.replace(':', '');
+      allowedOrigin = new URL(`${proto}://${host}`).origin;
+    }
+  } catch {
+    throw Object.assign(new Error('Konfigurasi origin aplikasi tidak valid'), { status: 500 });
+  }
+
+  let requestOrigin: string;
+  try {
+    requestOrigin = new URL(origin).origin;
   } catch {
     throw Object.assign(new Error('Origin tidak valid'), { status: 403 });
   }
 
-  if (!allowedHost || originHost !== allowedHost) {
+  // Bandingkan origin penuh, bukan host saja: http dan https tidak setara.
+  if (requestOrigin !== allowedOrigin) {
     throw Object.assign(new Error('Origin tidak diizinkan'), { status: 403 });
   }
 }

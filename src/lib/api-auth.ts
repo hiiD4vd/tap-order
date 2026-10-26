@@ -63,9 +63,9 @@ export async function parseBody<T extends z.ZodType>(
  * Throws if no session or role mismatch.
  *
  * @param requiredRole - Optional role requirement ('owner' | 'cashier')
- * @param request - Optional. Kalau disediakan, request mutasi (POST/PATCH/
- *   DELETE) divalidasi terhadap Origin header sebagai lapisan CSRF kedua
- *   di atas SameSite=Lax cookie. GET tidak perlu ini (tidak ada side effect).
+ * @param request - Wajib diberikan oleh handler mutasi (POST/PATCH/DELETE).
+ *   Origin harus sama persis dengan canonical app origin; absen/null ditolak.
+ *   Handler GET boleh mengabaikannya karena tidak punya side effect.
  * @returns SessionPayload if valid
  * @throws Error with status-appropriate message
  */

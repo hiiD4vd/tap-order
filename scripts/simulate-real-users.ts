@@ -6,6 +6,10 @@ let sessionCookie = '';
 async function apiFetch(input: string, init: RequestInit = {}) {
   const headers = new Headers(init.headers);
   if (sessionCookie) headers.set('Cookie', sessionCookie);
+  // Browser selalu mengirim Origin pada fetch mutasi. Simulation harus meniru
+  // browser agar CSRF guard fail-closed ikut teruji, bukan dilewati.
+  const method = (init.method || 'GET').toUpperCase();
+  if (!['GET', 'HEAD'].includes(method)) headers.set('Origin', new URL(BASE_URL).origin);
   const response = await fetch(input, { ...init, headers });
   const setCookie = response.headers.get('set-cookie');
   if (setCookie) sessionCookie = setCookie.split(';')[0];
